@@ -224,7 +224,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
   <div class="month-bar">
     <button class="menu-btn" onclick="togglePanel('month-panel')">☰</button>
     <div class="month-label" id="month-label"></div>
-    <button class="menu-btn" onclick="togglePanel('month-panel')" style="font-size:16px">☰</button>
   </div>
   <div class="stats">
     <div class="stat-card wide"><div class="label">当月总收入</div><div class="value" id="stat-total">¥0</div></div>
@@ -369,10 +368,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
 
 <script>
 // ========================
-// Supabase 配置（已内置，打开即用）
+// Supabase 配置（已内置，打开即用；也支持URL参数覆盖）
 // ========================
-const SUPABASE_URL = 'https://zaapkiyyziqoubsaaskd.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_oQNx70ET9Jx8cYbKcakPLQ_CZpLXLIU';
+function getQueryParam(name){
+  const u=new URLSearchParams(location.search);
+  return u.get(name)||'';
+}
+const SUPABASE_URL = getQueryParam('sb_url') || 'https://zaapkiyyziqoubsaaskd.supabase.co';
+const SUPABASE_ANON_KEY = getQueryParam('sb_key') || 'sb_publishable_oQNx70ET9Jx8cYbKcakPLQ_CZpLXLIU';
 let sb = null;
 let rtChannel = null;
 
