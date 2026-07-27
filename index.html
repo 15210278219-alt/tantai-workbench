@@ -75,6 +75,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
 .order-amount{font-size:19px;font-weight:700;color:var(--text)}
 .order-amount .unit{font-size:12px;font-weight:400;color:var(--text-dim)}
 .order-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--text-dim);margin-bottom:8px}
+.shoot-tag{color:var(--blue);font-weight:600}
+.shoot-done{color:var(--text-dim);text-decoration:line-through}
+.order-card.shot-done{opacity:.5;filter:grayscale(.6)}
 .order-footer{display:flex;justify-content:space-between;align-items:center}
 .status-badge{padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600}
 .status-badge.paid{background:var(--green-dim);color:var(--green-dark)}
@@ -340,6 +343,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
     <div class="form-group"><label class="form-label">合作形式 *</label><div class="picker-row"><div class="picker-btn p-image" data-val="image" onclick="pick('format','image')">🖼️ 图文</div><div class="picker-btn p-video" data-val="video" onclick="pick('format','video')">🎬 视频</div></div></div>
     <div class="form-group"><label class="form-label">价格档位</label><div class="picker-row"><div class="picker-btn p-surface" data-val="surface" onclick="pick('priceType','surface')">🌊 水上</div><div class="picker-btn p-underwater" data-val="underwater" onclick="pick('priceType','underwater')">🤿 水下</div></div></div>
     <div class="form-group"><label class="form-label">接单日期 *</label><input type="date" class="form-input" id="in-date"></div>
+    <div class="form-group"><label class="form-label">拍摄时间</label><input type="datetime-local" class="form-input" id="in-shoot-time"></div>
     <div class="form-group"><label class="form-label">合作费用（元）*</label><input type="number" class="form-input" id="in-amount" placeholder="0" min="0" step="100"></div>
     <div class="form-group"><label class="form-label">车马费</label><div class="picker-row"><div class="picker-btn p-no-tr" data-val="no" onclick="pick('transport','no')">无</div><div class="picker-btn p-has-tr" data-val="yes" onclick="pick('transport','yes')">有车马费</div></div></div>
     <div class="form-group hidden" id="field-transport"><label class="form-label">车马费金额（元）</label><input type="number" class="form-input" id="in-transport" placeholder="0" min="0" step="50"></div>
@@ -475,10 +479,10 @@ async function syncAll(){
 }
 
 function mapOrderToDB(o){
-  return{store:o.store,platform:o.platform,format:o.format,price_type:o.priceType,amount:o.amount,has_transport:o.hasTransport,transport_fee:o.transportFee,status:o.status,order_date:o.orderDate,due_date:o.dueDate,pay_date:o.payDate,note:o.note,room_id:ROOM};
+  return{store:o.store,platform:o.platform,format:o.format,price_type:o.priceType,amount:o.amount,has_transport:o.hasTransport,transport_fee:o.transportFee,status:o.status,order_date:o.orderDate,shoot_time:o.shootTime||null,due_date:o.dueDate,pay_date:o.payDate,note:o.note,room_id:ROOM};
 }
 function mapOrderFromDB(r){
-  return{id:r.id,store:r.store,platform:r.platform,format:r.format,priceType:r.price_type,amount:parseFloat(r.amount||0),hasTransport:r.has_transport,transportFee:parseFloat(r.transport_fee||0),status:r.status,orderDate:r.order_date,dueDate:r.due_date,payDate:r.pay_date,note:r.note};
+  return{id:r.id,store:r.store,platform:r.platform,format:r.format,priceType:r.price_type,amount:parseFloat(r.amount||0),hasTransport:r.has_transport,transportFee:parseFloat(r.transport_fee||0),status:r.status,orderDate:r.order_date,shootTime:r.shoot_time||'',dueDate:r.due_date,payDate:r.pay_date,note:r.note};
 }
 function mapPricingFromDB(r){
   return{imgSurface:parseFloat(r.img_surface||0),imgUnderwater:parseFloat(r.img_underwater||0),vidSurface:parseFloat(r.vid_surface||0),vidUnderwater:parseFloat(r.vid_underwater||0),note:r.note};
@@ -611,7 +615,23 @@ function render(){
   document.getElementById('stat-paid').textContent='¥'+paid.toLocaleString();
   document.getElementById('stat-unpaid').textContent='¥'+unpaid.toLocaleString();
 
-  let filtered=getFiltered(mo).sort((a,b)=>(b.orderDate||'').localeCompare(a.orderDate||''));
+  let filtered=getFiltered(mo).sort((a,b)=>{
+    const now=new Date();
+    const ad=a.shootTime?new Date(a.shootTime):null;
+    const bd=b.shootTime?new Date(b.shootTime):null;
+    const aDone=ad&&ad<now;
+    const bDone=bd&&bd<now;
+    // 已拍摄的排最后
+    if(aDone&&!bDone)return 1;
+    if(!aDone&&bDone)return -1;
+    // 都未拍摄：按拍摄时间升序（最近的在前）
+    if(ad&&bd)return ad-bd;
+    // 一个有拍摄时间一个没有：有拍摄时间的在前
+    if(ad&&!bd)return -1;
+    if(!ad&&bd)return 1;
+    // 都没有：按接单日期降序
+    return (b.orderDate||'').localeCompare(a.orderDate||'');
+  });
   const list=document.getElementById('order-list');
   if(filtered.length===0){
     list.innerHTML='<div class="empty-state"><div class="icon">📋</div><div>本月暂无订单<br>点击右下角 + 添加</div></div>';
@@ -626,13 +646,24 @@ function orderCardHtml(o,today){
   const pm={xhs:['小红书','xhs'],dy:['抖音','dy'],both:['双平台','both']}[o.platform||'xhs'];
   const sm={paid:['✓ 已付款','paid'],unpaid:['✗ 未付款','unpaid']}[o.status||'unpaid'];
   const overdue=o.status==='unpaid'&&o.dueDate&&o.dueDate<today?`<div class="overdue-warning">⚠ 已逾期，约定 ${o.dueDate}</div>`:'';
+  let isShotDone=false;
   let meta=`<div class="order-meta"><span>📅 ${o.orderDate||'-'}</span>`;
+  if(o.shootTime){
+    const sd=new Date(o.shootTime);
+    const now=new Date();
+    const diff=Math.round((sd-now)/86400000);
+    if(diff<0)isShotDone=true;
+    const dateStr=sd.toLocaleDateString('zh-CN',{month:'numeric',day:'numeric'});
+    const timeStr=sd.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+    const label=diff===0?`📸 今天 ${timeStr}`:diff===1?`📸 明天 ${timeStr}`:diff<0?`✅ 已拍 ${dateStr}`:`📸 ${dateStr} ${timeStr}`;
+    meta+=`<span class="${diff<0?'shoot-done':'shoot-tag'}">${label}</span>`;
+  }
   if(o.dueDate)meta+=`<span>⏰ ${o.dueDate}</span>`;
   if(o.payDate)meta+=`<span>💰 ${o.payDate}</span>`;
   meta+='</div>';
   const tags=`<span class="tag ${pm[1]}">${pm[0]}</span>${o.format?`<span class="tag ${o.format}">${o.format==='image'?'图文':'视频'}</span>`:''}${o.priceType?`<span class="tag ${o.priceType}">${o.priceType==='surface'?'水上':'水下'}</span>`:''}${o.hasTransport==='yes'?`<span class="tag transport">🚗+${o.transportFee}</span>`:''}`;
   const note=o.note?`<div class="order-note">📝 ${o.note}</div>`:'';
-  return `<div class="order-card" onclick="openOrderModal('${o.id}')">
+  return `<div class="order-card${isShotDone?' shot-done':''}" onclick="openOrderModal('${o.id}')">
     <div class="order-header"><div><div class="order-store">${o.store}</div>${tags}</div>
     <div class="order-amount">${(o.amount||0).toLocaleString()}<span class="unit">元</span></div></div>
     ${meta}${overdue}<div class="order-footer"><span class="status-badge ${sm[1]}">${sm[0]}</span></div>${note}</div>`;
@@ -702,6 +733,7 @@ function openOrderModal(id){
     document.getElementById('edit-id').value=o.id;
     document.getElementById('in-store').value=o.store||'';
     document.getElementById('in-date').value=o.orderDate||'';
+    document.getElementById('in-shoot-time').value=o.shootTime||'';
     document.getElementById('in-amount').value=o.amount||'';
     document.getElementById('in-due-date').value=o.dueDate||'';
     document.getElementById('in-pay-date').value=o.payDate||'';
@@ -713,6 +745,7 @@ function openOrderModal(id){
     document.getElementById('edit-id').value='';
     document.getElementById('in-store').value='';
     document.getElementById('in-date').value=new Date().toISOString().split('T')[0];
+    document.getElementById('in-shoot-time').value='';
     document.getElementById('in-amount').value='';
     document.getElementById('in-due-date').value='';
     document.getElementById('in-pay-date').value='';
@@ -748,7 +781,7 @@ function saveOrder(){
     id,store,platform:editPicks.platform,format:editPicks.format,priceType:editPicks.priceType,
     amount,status:editPicks.status,hasTransport:editPicks.transport,
     transportFee:editPicks.transport==='yes'?(parseFloat(document.getElementById('in-transport').value)||0):0,
-    orderDate:document.getElementById('in-date').value,dueDate:document.getElementById('in-due-date').value,
+    orderDate:document.getElementById('in-date').value,shootTime:document.getElementById('in-shoot-time').value,dueDate:document.getElementById('in-due-date').value,
     payDate:editPicks.status==='paid'?document.getElementById('in-pay-date').value:'',
     note:document.getElementById('in-note').value.trim()
   };

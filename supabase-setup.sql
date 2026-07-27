@@ -18,6 +18,7 @@ create table if not exists public.orders (
   transport_fee numeric default 0,
   status        text default 'unpaid',
   order_date    text,
+  shoot_time    text,
   due_date      text,
   pay_date      text,
   note          text,
