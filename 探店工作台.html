@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="探店工作台">
+<title>探店工作台</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#eef4fb;--card:#ffffff;--card-hover:#e8f0fa;--border:#d6e4f0;
+  --text:#1e3a5f;--text-dim:#7a9ab8;
+  --blue:#3b82f6;--blue-light:#dbeafe;--blue-dim:#dbeafe;
+  --blue-dark:#2563eb;
+  --purple:#8b5cf6;--purple-dim:#ede9fe;
+  --green:#10b981;--green-dim:#d1fae5;--green-dark:#059669;
+  --yellow:#f59e0b;--yellow-dim:#fef3c7;
+  --red:#ef4444;--red-dim:#fee2e2;--red-dark:#dc2626;
+  --radius:14px;--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --shadow:0 1px 8px rgba(59,130,246,.06);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:calc(90px + var(--safe-bottom));-webkit-font-smoothing:antialiased;padding-top:var(--safe-top)}
+
+/* 导航 */
+.top-nav{position:sticky;top:var(--safe-top);z-index:50;background:rgba(255,255,255,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;padding:0 16px}
+.nav-tab{flex:1;text-align:center;padding:14px 0 12px;font-size:15px;font-weight:600;color:var(--text-dim);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s}
+.nav-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* 同步栏 */
+.sync-bar{padding:6px 16px;font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:6px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
+.sync-dot.syncing{background:var(--yellow)}
+.sync-dot.offline{background:var(--red)}
+
+/* 月份栏 */
+.month-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 6px}
+.month-label{font-size:17px;font-weight:700;color:var(--text)}
+.menu-btn{width:44px;height:44px;border-radius:12px;background:var(--card);border:1px solid var(--border);color:var(--blue);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);flex-shrink:0}
+.menu-btn:active{background:var(--card-hover)}
+
+/* 统计 */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:4px 16px}
+.stat-card{background:var(--card);border-radius:var(--radius);padding:12px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.stat-card .label{font-size:11px;color:var(--text-dim);margin-bottom:3px}
+.stat-card .value{font-size:18px;font-weight:700}
+.stat-card.wide{grid-column:span 2;background:linear-gradient(135deg,var(--blue-light),#eff6ff);border-color:transparent}
+.stat-card.wide .value{font-size:22px;color:var(--blue-dark)}
+.stat-card.green .value{color:var(--green-dark)}
+.stat-card.red .value{color:var(--red-dark)}
+
+/* 筛选 */
+.filter-bar{display:flex;gap:6px;padding:8px 16px;overflow-x:auto;scrollbar-width:none}
+.filter-bar::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;padding:5px 14px;border-radius:20px;font-size:13px;background:var(--card);border:1px solid var(--border);color:var(--text-dim);cursor:pointer;transition:all .15s}
+.chip.active{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
+
+/* 列表 */
+.list{padding:4px 16px}
+.order-card{background:var(--card);border-radius:var(--radius);padding:13px;margin-bottom:8px;border:1px solid var(--border);cursor:pointer;box-shadow:var(--shadow);transition:background .15s}
+.order-card:active{background:var(--card-hover)}
+.order-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.order-store{font-size:16px;font-weight:600;color:var(--text);margin-bottom:3px}
+.tag{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;margin-right:3px}
+.tag.xhs{background:var(--red-dim);color:var(--red-dark)}
+.tag.dy{background:#1e293b;color:#fff}
+.tag.both{background:var(--purple-dim);color:var(--purple)}
+.tag.surface{background:var(--blue-dim);color:var(--blue-dark)}
+.tag.underwater{background:var(--purple-dim);color:var(--purple)}
+.tag.image{background:var(--green-dim);color:var(--green-dark)}
+.tag.video{background:var(--yellow-dim);color:#92400e}
+.tag.transport{background:var(--yellow-dim);color:#92400e}
+.order-amount{font-size:19px;font-weight:700;color:var(--text)}
+.order-amount .unit{font-size:12px;font-weight:400;color:var(--text-dim)}
+.order-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--text-dim);margin-bottom:8px}
+.order-footer{display:flex;justify-content:space-between;align-items:center}
+.status-badge{padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600}
+.status-badge.paid{background:var(--green-dim);color:var(--green-dark)}
+.status-badge.unpaid{background:var(--red-dim);color:var(--red-dark)}
+.overdue-warning{font-size:11px;color:var(--red-dark);margin-top:3px;font-weight:500}
+.order-note{font-size:12px;color:var(--text-dim);margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);line-height:1.5}
+.empty-state{text-align:center;padding:50px 20px;color:var(--text-dim)}
+.empty-state .icon{font-size:44px;margin-bottom:10px}
+
+/* 历史折叠 */
+.archive-section{margin:16px 0}
+.archive-title{font-size:13px;font-weight:600;color:var(--text-dim);padding:0 4px 8px}
+.archive-month{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:6px;overflow:hidden;box-shadow:var(--shadow)}
+.archive-header{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer}
+.archive-header:active{background:var(--card-hover)}
+.archive-header .am-info{font-size:14px;font-weight:600;color:var(--text)}
+.archive-header .am-summary{font-size:12px;color:var(--text-dim);margin-top:2px}
+.archive-header .am-arrow{font-size:14px;color:var(--text-dim);transition:transform .2s}
+.archive-month.open .am-arrow{transform:rotate(90deg)}
+.archive-body{display:none;border-top:1px solid var(--border)}
+.archive-month.open .archive-body{display:block}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(20px + var(--safe-bottom));right:16px;width:54px;height:54px;border-radius:50%;background:var(--blue);color:#fff;border:none;font-size:26px;box-shadow:0 4px 14px rgba(59,130,246,.35);cursor:pointer;z-index:100;display:flex;align-items:center;justify-content:center;transition:transform .12s}
+.fab:active{transform:scale(.9)}
+
+/* 弹窗 */
+.modal-overlay{position:fixed;inset:0;background:rgba(30,58,95,.35);backdrop-filter:blur(4px);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--bg);width:100%;max-width:500px;border-radius:20px 20px 0 0;padding:20px 16px calc(24px + var(--safe-bottom));max-height:90vh;overflow-y:auto;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.modal-title{font-size:17px;font-weight:700}
+.close-btn{background:var(--card);border:1px solid var(--border);color:var(--text-dim);font-size:16px;cursor:pointer;padding:4px 12px;border-radius:20px}
+.form-group{margin-bottom:12px}
+.form-label{font-size:13px;color:var(--text-dim);margin-bottom:5px;display:block;font-weight:600}
+.form-input,.form-textarea{width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:16px;font-family:inherit}
+.form-input:focus,.form-textarea:focus{outline:none;border-color:var(--blue)}
+.form-textarea{resize:vertical;min-height:50px}
+.picker-row{display:flex;gap:6px}
+.picker-btn{flex:1;padding:9px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text-dim);font-size:13px;cursor:pointer;text-align:center;transition:all .15s}
+.picker-btn.active{font-weight:600}
+.picker-btn.active.p-xhs{background:var(--red-dim);border-color:var(--red);color:var(--red-dark)}
+.picker-btn.active.p-dy{background:#1e293b;border-color:#1e293b;color:#fff}
+.picker-btn.active.p-both{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
+.picker-btn.active.p-surface{background:var(--blue-dim);border-color:var(--blue);color:var(--blue-dark)}
+.picker-btn.active.p-underwater{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
+.picker-btn.active.p-image{background:var(--green-dim);border-color:var(--green);color:var(--green-dark)}
+.picker-btn.active.p-video{background:var(--yellow-dim);border-color:var(--yellow);color:#92400e}
+.picker-btn.active.p-paid{background:var(--green-dim);border-color:var(--green);color:var(--green-dark)}
+.picker-btn.active.p-unpaid{background:var(--red-dim);border-color:var(--red);color:var(--red-dark)}
+.picker-btn.active.p-no-tr{background:var(--card-hover);border-color:var(--text-dim);color:var(--text-dim)}
+.picker-btn.active.p-has-tr{background:var(--yellow-dim);border-color:var(--yellow);color:#92400e}
+.btn-primary{width:100%;padding:13px;border-radius:12px;border:none;background:var(--blue);color:#fff;font-size:16px;font-weight:600;cursor:pointer;margin-top:6px}
+.btn-primary:active{opacity:.85}
+.btn-danger{width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--red-dark);font-size:14px;cursor:pointer;margin-top:6px}
+
+/* 面板 - 左侧抽屉 */
+.panel{display:none;position:fixed;top:var(--safe-top);left:0;bottom:0;width:280px;max-width:80vw;background:var(--card);border-right:1px solid var(--border);box-shadow:4px 0 24px rgba(59,130,246,.1);z-index:150;padding:16px 14px;overflow-y:auto;animation:slideInLeft .2s ease}
+.panel.show{display:block}
+@keyframes slideInLeft{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+.panel.show{display:block;animation:fadeIn .2s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.panel-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:0 4px}
+.panel-nav .pn-title{font-size:17px;font-weight:700}
+.panel-nav .pn-close{background:var(--bg);border:1px solid var(--border);color:var(--text-dim);font-size:16px;cursor:pointer;padding:4px 12px;border-radius:20px}
+.panel-year{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 4px}
+.panel-year button{background:none;border:none;color:var(--blue);font-size:14px;cursor:pointer;font-weight:600;padding:2px 8px}
+.month-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.month-item{padding:10px 4px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;cursor:pointer;text-align:center}
+.month-item:active{background:var(--card-hover)}
+.month-item.active{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
+.quick-btn{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);font-size:13px;cursor:pointer;text-align:center;margin-top:5px;font-weight:600}
+.quick-btn:active{opacity:.85}
+
+/* 苹果风格待办 */
+.todo-app{display:none;position:fixed;inset:0;background:var(--bg);z-index:300;overflow-y:auto;padding-top:var(--safe-top)}
+.todo-app.show{display:block}
+.todo-header{position:sticky;top:0;background:rgba(255,255,255,.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:12px 16px;z-index:10}
+.todo-header .th-title{font-size:20px;font-weight:700;color:var(--text)}
+.todo-header .th-close{background:none;border:none;color:var(--blue);font-size:16px;cursor:pointer;font-weight:600}
+.todo-input-bar{position:sticky;top:49px;background:var(--bg);padding:8px 16px;border-bottom:1px solid var(--border);z-index:9}
+.todo-input-bar .ti-row{display:flex;gap:8px}
+.todo-input-bar input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--text);font-size:16px}
+.todo-input-bar input:focus{outline:none;border-color:var(--blue)}
+.todo-input-bar button{padding:0 18px;border:none;border-radius:12px;background:var(--blue);color:#fff;font-size:15px;font-weight:600;cursor-pointer}
+.todo-list{padding:8px 16px 60px}
+.todo-section-title{font-size:13px;font-weight:700;color:var(--text-dim);padding:12px 0 6px;text-transform:uppercase;letter-spacing:.5px}
+.todo-item{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:4px;border:1px solid var(--border)}
+.todo-item:active{background:var(--card-hover)}
+.todo-check{width:26px;height:26px;border-radius:50%;border:2px solid var(--text-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s}
+.todo-check.checked{background:var(--blue);border-color:var(--blue)}
+.todo-check.checked::after{content:'✓';color:#fff;font-size:15px;font-weight:700}
+.todo-text{flex:1;font-size:15px;color:var(--text);word-break:break-word}
+.todo-item.done .todo-text{color:var(--text-dim);text-decoration:line-through}
+.todo-date{font-size:11px;color:var(--text-dim);margin-top:2px}
+.todo-delete{background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:4px;opacity:.5}
+.todo-delete:active{opacity:1}
+.todo-empty{text-align:center;padding:60px 20px;color:var(--text-dim)}
+.todo-empty .icon{font-size:48px;margin-bottom:12px}
+
+/* 报价表 */
+.price-grid{display:grid;grid-template-columns:auto 1fr 1fr}
+.price-grid .pg-cell{padding:11px;text-align:center;border-bottom:1px solid var(--border);border-left:1px solid var(--border);font-size:13px}
+.price-grid .pg-cell:first-child{border-left:none}
+.price-grid .pg-label{font-weight:600;color:var(--text);white-space:nowrap}
+.price-grid .pg-val{font-size:16px;font-weight:700}
+.price-grid .pg-val.blue{color:var(--blue-dark)}
+.price-grid .pg-val.purple{color:var(--purple)}
+.price-grid .pg-val.green{color:var(--green-dark)}
+.price-grid .pg-val.amber{color:#92400e}
+
+/* Toast */
+.toast{position:fixed;bottom:calc(90px + var(--safe-bottom));left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:9px 18px;border-radius:20px;font-size:14px;z-index:400;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+
+/* 配置面板 */
+.config-row{margin-bottom:10px}
+.config-row label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-weight:600}
+.config-row input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px;font-family:monospace}
+
+/* 分享 */
+.share-section{margin:12px 16px;padding-top:10px;border-top:1px solid var(--border)}
+.share-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
+.share-card h3{font-size:14px;margin-bottom:6px}
+.share-link{display:flex;gap:6px;margin-top:6px}
+.share-link input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--text);font-size:12px}
+.share-link button{padding:0 14px;border:none;border-radius:8px;background:var(--blue);color:#fff;font-size:12px;cursor:pointer;white-space:nowrap}
+
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="top-nav">
+  <div class="nav-tab active" data-tab="orders" onclick="switchTab('orders')">📋 订单</div>
+  <div class="nav-tab" data-tab="pricing" onclick="switchTab('pricing')">💰 报价</div>
+</div>
+
+<div class="sync-bar">
+  <div class="sync-dot offline" id="sync-dot"></div>
+  <span id="sync-text">初始化中...</span>
+</div>
+
+<!-- 订单页 -->
+<div id="page-orders">
+  <div class="month-bar">
+    <button class="menu-btn" onclick="togglePanel('month-panel')">☰</button>
+    <div class="month-label" id="month-label"></div>
+    <button class="menu-btn" onclick="togglePanel('month-panel')" style="font-size:16px">☰</button>
+  </div>
+  <div class="stats">
+    <div class="stat-card wide"><div class="label">当月总收入</div><div class="value" id="stat-total">¥0</div></div>
+    <div class="stat-card green"><div class="label">已到账</div><div class="value" id="stat-paid">¥0</div></div>
+    <div class="stat-card red"><div class="label">待收款项</div><div class="value" id="stat-unpaid">¥0</div></div>
+  </div>
+  <div class="filter-bar" id="filter-bar">
+    <div class="chip active" data-filter="all">全部</div>
+    <div class="chip" data-filter="unpaid">未付款</div>
+    <div class="chip" data-filter="overdue">已逾期</div>
+    <div class="chip" data-filter="paid">已付款</div>
+    <div class="chip" data-filter="xhs">小红书</div>
+    <div class="chip" data-filter="dy">抖音</div>
+    <div class="chip" data-filter="both">双平台</div>
+    <div class="chip" data-filter="image">图文</div>
+    <div class="chip" data-filter="video">视频</div>
+  </div>
+  <div class="list" id="order-list"></div>
+  <div class="archive-section" id="archive-section"></div>
+  <div class="share-section">
+    <div class="share-card">
+      <h3>🔗 邀请朋友共享</h3>
+      <div style="font-size:12px;color:var(--text-dim)">把链接发给朋友，数据实时同步。</div>
+      <div class="share-link"><input type="text" id="share-url" readonly><button onclick="copyShareLink()">复制</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- 报价页 -->
+<div id="page-pricing" class="hidden">
+  <div class="month-bar">
+    <button class="menu-btn" onclick="togglePanel('month-panel')">☰</button>
+    <div class="month-label" id="pricing-month-label"></div>
+    <div style="width:36px"></div>
+  </div>
+  <div class="stats">
+    <div class="stat-card wide"><div class="label">本月订单总额</div><div class="value" id="pstat-total">¥0</div></div>
+    <div class="stat-card green"><div class="label">已结款</div><div class="value" id="pstat-paid">¥0</div></div>
+    <div class="stat-card red"><div class="label">未结款</div><div class="value" id="pstat-unpaid">¥0</div></div>
+  </div>
+  <div style="font-size:14px;font-weight:600;color:var(--text-dim);padding:12px 16px 6px;display:flex;justify-content:space-between;align-items:center">
+    <span>本月报价表</span><span style="font-size:13px;color:var(--blue);cursor:pointer" onclick="openPricingModal()">编辑报价</span>
+  </div>
+  <div style="margin:0 16px 8px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)">
+    <div class="price-grid" id="pricing-display"></div>
+  </div>
+  <div style="font-size:14px;font-weight:600;color:var(--text-dim);padding:8px 16px 6px">历史报价</div>
+  <div id="pricing-history" style="padding:0 16px"></div>
+</div>
+
+<button class="fab" onclick="openOrderModal()">+</button>
+
+<!-- 遮罩 -->
+<div id="panel-overlay" style="display:none;position:fixed;inset:0;background:rgba(30,58,95,.2);backdrop-filter:blur(2px);z-index:140" onclick="closeAllPanels()"></div>
+
+<!-- 月份面板 -->
+<div class="panel" id="month-panel">
+  <div class="panel-nav"><span class="pn-title">选择月份</span><button class="pn-close" onclick="togglePanel('month-panel')">✕</button></div>
+  <div class="panel-year"><button onclick="shiftYear(-1)">‹ 上一年</button><span id="panel-year" style="font-size:15px;font-weight:700"></span><button onclick="shiftYear(1)">下一年 ›</button></div>
+  <div class="month-grid" id="month-grid"></div>
+  <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px">
+    <div style="font-size:12px;color:var(--text-dim);font-weight:600;padding:0 4px 4px">快捷入口</div>
+    <button class="quick-btn" style="background:var(--red-dim);border-color:var(--red);color:var(--red-dark)" onclick="showUnpaid()">📋 查看所有未结款订单</button>
+    <button class="quick-btn" style="background:var(--blue-dim);border-color:var(--blue);color:var(--blue-dark)" onclick="openTodoApp()">✅ 待办事项</button>
+    <button class="quick-btn" style="background:var(--purple-dim);border-color:var(--purple);color:var(--purple)" onclick="showStoreStats()">🏪 店铺接单统计</button>
+    <button class="quick-btn" style="background:var(--card);border-color:var(--border);color:var(--text-dim)" onclick="showConfig()">⚙️ 云端设置</button>
+  </div>
+</div>
+
+<!-- 未结款面板 -->
+<div class="panel" id="unpaid-panel">
+  <div class="panel-nav"><span class="pn-title">📋 所有未结款</span><button class="pn-close" onclick="togglePanel('unpaid-panel')">✕</button></div>
+  <div id="unpaid-list"></div>
+</div>
+
+<!-- 店铺统计面板 -->
+<div class="panel" id="store-panel">
+  <div class="panel-nav"><span class="pn-title">🏪 店铺接单统计</span><button class="pn-close" onclick="togglePanel('store-panel')">✕</button></div>
+  <div id="store-list"></div>
+</div>
+
+<!-- 配置面板 -->
+<div class="panel" id="config-panel">
+  <div class="panel-nav"><span class="pn-title">⚙️ 云端设置</span><button class="pn-close" onclick="togglePanel('config-panel')">✕</button></div>
+  <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;line-height:1.5">填写你的 Supabase 项目 URL 和 anon key。获取方式：supabase.com → 项目设置 → API</div>
+  <div class="config-row"><label>Supabase URL</label><input type="text" id="config-url" placeholder="https://xxxxx.supabase.co"></div>
+  <div class="config-row"><label>Anon Key</label><input type="text" id="config-key" placeholder="eyJhbGciOi..."></div>
+  <button class="btn-primary" onclick="saveConfig()">保存并连接</button>
+</div>
+
+<!-- 苹果风格待办 -->
+<div class="todo-app" id="todo-app">
+  <div class="todo-header">
+    <span class="th-title">✅ 待办事项</span>
+    <button class="th-close" onclick="closeTodoApp()">完成</button>
+  </div>
+  <div class="todo-input-bar">
+    <div class="ti-row">
+      <input type="text" id="todo-input" placeholder="添加新待办..." onkeypress="if(event.key==='Enter')addTodo()">
+      <button onclick="addTodo()">添加</button>
+    </div>
+  </div>
+  <div class="todo-list" id="todo-list"></div>
+</div>
+
+<!-- 订单弹窗 -->
+<div class="modal-overlay" id="order-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="order-title">新增订单</div><button class="close-btn" onclick="closeModal('order-modal')">✕</button></div>
+    <input type="hidden" id="edit-id">
+    <div class="form-group"><label class="form-label">店名 *</label><input type="text" class="form-input" id="in-store" placeholder="例如：张记火锅"></div>
+    <div class="form-group"><label class="form-label">合作平台 *</label><div class="picker-row"><div class="picker-btn p-xhs" data-val="xhs" onclick="pick('platform','xhs')">小红书</div><div class="picker-btn p-dy" data-val="dy" onclick="pick('platform','dy')">抖音</div><div class="picker-btn p-both" data-val="both" onclick="pick('platform','both')">双平台</div></div></div>
+    <div class="form-group"><label class="form-label">合作形式 *</label><div class="picker-row"><div class="picker-btn p-image" data-val="image" onclick="pick('format','image')">🖼️ 图文</div><div class="picker-btn p-video" data-val="video" onclick="pick('format','video')">🎬 视频</div></div></div>
+    <div class="form-group"><label class="form-label">价格档位</label><div class="picker-row"><div class="picker-btn p-surface" data-val="surface" onclick="pick('priceType','surface')">🌊 水上</div><div class="picker-btn p-underwater" data-val="underwater" onclick="pick('priceType','underwater')">🤿 水下</div></div></div>
+    <div class="form-group"><label class="form-label">接单日期 *</label><input type="date" class="form-input" id="in-date"></div>
+    <div class="form-group"><label class="form-label">合作费用（元）*</label><input type="number" class="form-input" id="in-amount" placeholder="0" min="0" step="100"></div>
+    <div class="form-group"><label class="form-label">车马费</label><div class="picker-row"><div class="picker-btn p-no-tr" data-val="no" onclick="pick('transport','no')">无</div><div class="picker-btn p-has-tr" data-val="yes" onclick="pick('transport','yes')">有车马费</div></div></div>
+    <div class="form-group hidden" id="field-transport"><label class="form-label">车马费金额（元）</label><input type="number" class="form-input" id="in-transport" placeholder="0" min="0" step="50"></div>
+    <div class="form-group"><label class="form-label">支付状态</label><div class="picker-row"><div class="picker-btn p-unpaid" data-val="unpaid" onclick="pick('status','unpaid')">未付款</div><div class="picker-btn p-paid" data-val="paid" onclick="pick('status','paid')">已付款</div></div></div>
+    <div class="form-group hidden" id="field-pay-date"><label class="form-label">实际支付日期</label><input type="date" class="form-input" id="in-pay-date"></div>
+    <div class="form-group"><label class="form-label">约定支付日期</label><input type="date" class="form-input" id="in-due-date"></div>
+    <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="in-note" placeholder="例如：需返图3张..."></textarea></div>
+    <button class="btn-primary" onclick="saveOrder()">保存</button>
+    <button class="btn-danger hidden" id="delete-btn" onclick="deleteOrder()">删除此订单</button>
+  </div>
+</div>
+
+<!-- 报价弹窗 -->
+<div class="modal-overlay" id="pricing-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">编辑报价</div><button class="close-btn" onclick="closeModal('pricing-modal')">✕</button></div>
+    <div class="form-group"><label class="form-label">🖼️ 图文 · 水上（元）</label><input type="number" class="form-input" id="in-img-surf" min="0" step="100"></div>
+    <div class="form-group"><label class="form-label">🖼️ 图文 · 水下（元）</label><input type="number" class="form-input" id="in-img-under" min="0" step="100"></div>
+    <div class="form-group"><label class="form-label">🎬 视频 · 水上（元）</label><input type="number" class="form-input" id="in-vid-surf" min="0" step="100"></div>
+    <div class="form-group"><label class="form-label">🎬 视频 · 水下（元）</label><input type="number" class="form-input" id="in-vid-under" min="0" step="100"></div>
+    <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="in-price-note" placeholder="例如：双平台打包价另议"></textarea></div>
+    <button class="btn-primary" onclick="savePricing()">保存报价</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========================
+// Supabase 配置
+// ========================
+let SUPABASE_URL = localStorage.getItem('sb_url') || '';
+let SUPABASE_ANON_KEY = localStorage.getItem('sb_key') || '';
+let sb = null;
+let rtChannel = null;
+
+function getRoom(){
+  if(location.hash&&location.hash.startsWith('#room='))return location.hash.substring(6);
+  let r=localStorage.getItem('wb_room');
+  if(!r){r='wb'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('wb_room',r);}
+  history.replaceState(null,'','#room='+r);
+  return r;
+}
+const ROOM=getRoom();
+
+function initSupabase(){
+  if(!SUPABASE_URL||!SUPABASE_ANON_KEY||SUPABASE_URL.includes('YOUR_')){
+    setSyncStatus('offline','⚠ 未配置云端，仅本地');
+    return false;
+  }
+  try{
+    sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{headers:{'x-room-id':ROOM}});
+    setSyncStatus('syncing','连接中...');
+    return true;
+  }catch(e){
+    setSyncStatus('offline','⚠ 云端配置错误');
+    return false;
+  }
+}
+
+function setSyncStatus(state,text){
+  const dot=document.getElementById('sync-dot'),txt=document.getElementById('sync-text');
+  dot.className='sync-dot '+state;
+  txt.textContent=text;
+}
+
+// ========================
+// 数据层
+// ========================
+const CK='wb_cache_v5';
+function loadCache(){try{return JSON.parse(localStorage.getItem(CK))||{orders:[],pricing:{},todos:[]}}catch{return{orders:[],pricing:{},todos:[]}}}
+function saveCache(){localStorage.setItem(CK,JSON.stringify(cache))}
+let cache=loadCache();
+
+let currentMonth=new Date().toISOString().substring(0,7);
+let currentFilter='all';
+let panelYear=new Date().getFullYear();
+let editPicks={platform:'',format:'',priceType:'',status:'unpaid',transport:'no'};
+
+// ========================
+// 云端同步
+// ========================
+async function syncAll(){
+  if(!sb){setSyncStatus('offline','⚠ 未配置云端');return;}
+  setSyncStatus('syncing','同步中...');
+  try{
+    const[{data:orders},{data:pricing},{data:todos}]=await Promise.all([
+      sb.from('orders').select('*'),
+      sb.from('pricing').select('*'),
+      sb.from('todos').select('*')
+    ]);
+    if(orders){cache.orders=orders.map(mapOrderFromDB);}
+    if(pricing){cache.pricing={};pricing.forEach(p=>{cache.pricing[p.month]=mapPricingFromDB(p);});}
+    if(todos){cache.todos=todos.map(t=>({id:t.id,text:t.text,done:t.done,created:t.created}));}
+    saveCache();
+    setSyncStatus('','☁️ 云端已连接');
+    render();renderPricing();renderTodos();
+  }catch(e){
+    setSyncStatus('offline','⚠ 离线模式');
+  }
+}
+
+function mapOrderToDB(o){
+  return{store:o.store,platform:o.platform,format:o.format,price_type:o.priceType,amount:o.amount,has_transport:o.hasTransport,transport_fee:o.transportFee,status:o.status,order_date:o.orderDate,due_date:o.dueDate,pay_date:o.payDate,note:o.note,room_id:ROOM};
+}
+function mapOrderFromDB(r){
+  return{id:r.id,store:r.store,platform:r.platform,format:r.format,priceType:r.price_type,amount:parseFloat(r.amount||0),hasTransport:r.has_transport,transportFee:parseFloat(r.transport_fee||0),status:r.status,orderDate:r.order_date,dueDate:r.due_date,payDate:r.pay_date,note:r.note};
+}
+function mapPricingFromDB(r){
+  return{imgSurface:parseFloat(r.img_surface||0),imgUnderwater:parseFloat(r.img_underwater||0),vidSurface:parseFloat(r.vid_surface||0),vidUnderwater:parseFloat(r.vid_underwater||0),note:r.note};
+}
+
+// Realtime
+function subscribeRealtime(){
+  if(!sb)return;
+  if(rtChannel)sb.removeChannel(rtChannel);
+  rtChannel=sb.channel('db-changes')
+    .on('postgres_changes',{event:'*',schema:'public',table:'orders',filter:`room_id=eq.${ROOM}`},()=>syncAll())
+    .on('postgres_changes',{event:'*',schema:'public',table:'pricing',filter:`room_id=eq.${ROOM}`},()=>syncAll())
+    .on('postgres_changes',{event:'*',schema:'public',table:'todos',filter:`room_id=eq.${ROOM}`},()=>syncAll())
+    .subscribe(status=>{
+      if(status==='SUBSCRIBED')setSyncStatus('','☁️ 云端已连接');
+      else if(status==='CHANNEL_ERROR'||status==='CLOSED')setSyncStatus('offline','⚠ 连接断开');
+    });
+}
+
+// ========================
+// CRUD - Orders
+// ========================
+async function pushOrder(o){
+  if(!sb)return;
+  await sb.from('orders').upsert({id:o.id,...mapOrderToDB(o)});
+}
+async function deleteOrderDB(id){
+  if(!sb)return;
+  await sb.from('orders').delete().eq('id',id);
+}
+
+// ========================
+// CRUD - Pricing
+// ========================
+async function pushPricing(month,data){
+  if(!sb)return;
+  await sb.from('pricing').upsert({id:ROOM+'_'+month,room_id:ROOM,month:month,
+    img_surface:data.imgSurface,img_underwater:data.imgUnderwater,vid_surface:data.vidSurface,vid_underwater:data.vidUnderwater,note:data.note},
+    {onConflict:'room_id,month'});
+}
+
+// ========================
+// CRUD - Todos
+// ========================
+async function pushTodo(t){
+  if(!sb)return;
+  await sb.from('todos').upsert({id:t.id,room_id:ROOM,text:t.text,done:t.done,created:t.created});
+}
+async function deleteTodoDB(id){
+  if(!sb)return;
+  await sb.from('todos').delete().eq('id',id);
+}
+
+// ========================
+// 月份
+// ========================
+function shiftYear(d){panelYear+=d;renderMonthGrid();}
+function renderMonthGrid(){
+  document.getElementById('panel-year').textContent=panelYear;
+  const cur=currentMonth.split('-');
+  let html='';
+  for(let m=1;m<=12;m++){
+    const ms=panelYear+'-'+String(m).padStart(2,'0');
+    const active=panelYear==cur[0]&&m==cur[1];
+    html+=`<div class="month-item${active?' active':''}" onclick="selectMonth('${ms}')">${m}月</div>`;
+  }
+  document.getElementById('month-grid').innerHTML=html;
+}
+function selectMonth(ms){currentMonth=ms;togglePanel('month-panel');render();renderPricing();}
+
+// ========================
+// 面板控制
+// ========================
+function closeAllPanels(){
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('show'));
+  document.getElementById('panel-overlay').style.display='none';
+}
+function togglePanel(id){
+  const p=document.getElementById(id);
+  const wasOpen=p.classList.contains('show');
+  closeAllPanels();
+  if(!wasOpen){
+    if(id==='month-panel')renderMonthGrid();
+    if(id==='unpaid-panel')renderUnpaid();
+    if(id==='store-panel')renderStoreStats();
+    if(id==='config-panel'){document.getElementById('config-url').value=SUPABASE_URL;document.getElementById('config-key').value=SUPABASE_ANON_KEY;}
+    p.classList.add('show');
+    document.getElementById('panel-overlay').style.display='block';
+  }
+}
+function showUnpaid(){togglePanel('unpaid-panel');}
+function showStoreStats(){togglePanel('store-panel');}
+function showConfig(){togglePanel('config-panel');}
+
+// 点击遮罩关闭面板已由 overlay onclick 处理，这里不需要重复
+document.addEventListener('click',e=>{
+  if(e.target.closest('.menu-btn'))return;
+});
+
+// ========================
+// Tab
+// ========================
+function switchTab(t){
+  document.querySelectorAll('.nav-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
+  document.getElementById('page-orders').classList.toggle('hidden',t!=='orders');
+  document.getElementById('page-pricing').classList.toggle('hidden',t!=='pricing');
+}
+
+// ========================
+// 渲染订单
+// ========================
+function render(){
+  const[y,m]=currentMonth.split('-').map(Number);
+  document.getElementById('month-label').textContent=`${y}年${m}月`;
+  const mo=cache.orders.filter(o=>o.orderDate&&o.orderDate.startsWith(currentMonth));
+  const paid=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee,0);
+  const unpaid=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee,0);
+  document.getElementById('stat-total').textContent='¥'+(paid+unpaid).toLocaleString();
+  document.getElementById('stat-paid').textContent='¥'+paid.toLocaleString();
+  document.getElementById('stat-unpaid').textContent='¥'+unpaid.toLocaleString();
+
+  let filtered=getFiltered(mo).sort((a,b)=>(b.orderDate||'').localeCompare(a.orderDate||''));
+  const list=document.getElementById('order-list');
+  if(filtered.length===0){
+    list.innerHTML='<div class="empty-state"><div class="icon">📋</div><div>本月暂无订单<br>点击右下角 + 添加</div></div>';
+  }else{
+    const today=new Date().toISOString().split('T')[0];
+    list.innerHTML=filtered.map(o=>orderCardHtml(o,today)).join('');
+  }
+  renderArchive();
+}
+
+function orderCardHtml(o,today){
+  const pm={xhs:['小红书','xhs'],dy:['抖音','dy'],both:['双平台','both']}[o.platform||'xhs'];
+  const sm={paid:['✓ 已付款','paid'],unpaid:['✗ 未付款','unpaid']}[o.status||'unpaid'];
+  const overdue=o.status==='unpaid'&&o.dueDate&&o.dueDate<today?`<div class="overdue-warning">⚠ 已逾期，约定 ${o.dueDate}</div>`:'';
+  let meta=`<div class="order-meta"><span>📅 ${o.orderDate||'-'}</span>`;
+  if(o.dueDate)meta+=`<span>⏰ ${o.dueDate}</span>`;
+  if(o.payDate)meta+=`<span>💰 ${o.payDate}</span>`;
+  meta+='</div>';
+  const tags=`<span class="tag ${pm[1]}">${pm[0]}</span>${o.format?`<span class="tag ${o.format}">${o.format==='image'?'图文':'视频'}</span>`:''}${o.priceType?`<span class="tag ${o.priceType}">${o.priceType==='surface'?'水上':'水下'}</span>`:''}${o.hasTransport==='yes'?`<span class="tag transport">🚗+${o.transportFee}</span>`:''}`;
+  const note=o.note?`<div class="order-note">📝 ${o.note}</div>`:'';
+  return `<div class="order-card" onclick="openOrderModal('${o.id}')">
+    <div class="order-header"><div><div class="order-store">${o.store}</div>${tags}</div>
+    <div class="order-amount">${(o.amount||0).toLocaleString()}<span class="unit">元</span></div></div>
+    ${meta}${overdue}<div class="order-footer"><span class="status-badge ${sm[1]}">${sm[0]}</span></div>${note}</div>`;
+}
+
+function getFiltered(orders){
+  const today=new Date().toISOString().split('T')[0];
+  const f=currentFilter;
+  if(f==='all')return orders;
+  if(f==='unpaid')return orders.filter(o=>o.status==='unpaid');
+  if(f==='paid')return orders.filter(o=>o.status==='paid');
+  if(f==='overdue')return orders.filter(o=>o.status==='unpaid'&&o.dueDate&&o.dueDate<today);
+  if(f==='xhs')return orders.filter(o=>o.platform==='xhs'||o.platform==='both');
+  if(f==='dy')return orders.filter(o=>o.platform==='dy'||o.platform==='both');
+  if(f==='both')return orders.filter(o=>o.platform==='both');
+  if(f==='image')return orders.filter(o=>o.format==='image');
+  if(f==='video')return orders.filter(o=>o.format==='video');
+  return orders;
+}
+
+document.getElementById('filter-bar').addEventListener('click',e=>{
+  const c=e.target.closest('.chip');if(!c)return;
+  document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
+  c.classList.add('active');currentFilter=c.dataset.filter;render();
+});
+
+// ========================
+// 历史折叠
+// ========================
+function renderArchive(){
+  const sec=document.getElementById('archive-section');
+  const paid=cache.orders.filter(o=>o.status==='paid'&&o.orderDate&&!o.orderDate.startsWith(currentMonth));
+  if(paid.length===0){sec.innerHTML='';return;}
+  const byMonth={};
+  paid.forEach(o=>{
+    const m=o.orderDate.substring(0,7);
+    if(!byMonth[m])byMonth[m]={orders:[],total:0};
+    byMonth[m].orders.push(o);
+    byMonth[m].total+=o.amount+o.transportFee;
+  });
+  const keys=Object.keys(byMonth).sort().reverse();
+  sec.innerHTML='<div class="archive-title">📚 历史已结款订单</div>'+keys.map(k=>{
+    const[y,m]=k.split('-').map(Number);
+    const g=byMonth[k];
+    const today=new Date().toISOString().split('T')[0];
+    return `<div class="archive-month" id="am-${k}">
+      <div class="archive-header" onclick="toggleArchive('${k}')">
+        <div><div class="am-info">${y}年${m}月</div><div class="am-summary">${g.orders.length}单 · ¥${g.total.toLocaleString()}</div></div>
+        <div class="am-arrow">›</div>
+      </div>
+      <div class="archive-body">${g.orders.sort((a,b)=>(b.orderDate||'').localeCompare(a.orderDate||'')).map(o=>orderCardHtml(o,today)).join('')}</div>
+    </div>`;
+  }).join('');
+}
+function toggleArchive(k){
+  document.getElementById('am-'+k).classList.toggle('open');
+}
+
+// ========================
+// 订单弹窗
+// ========================
+function openOrderModal(id){
+  const title=document.getElementById('order-title'),del=document.getElementById('delete-btn');
+  if(id){
+    const o=cache.orders.find(x=>x.id==id);if(!o)return;
+    title.textContent='编辑订单';del.classList.remove('hidden');
+    document.getElementById('edit-id').value=o.id;
+    document.getElementById('in-store').value=o.store||'';
+    document.getElementById('in-date').value=o.orderDate||'';
+    document.getElementById('in-amount').value=o.amount||'';
+    document.getElementById('in-due-date').value=o.dueDate||'';
+    document.getElementById('in-pay-date').value=o.payDate||'';
+    document.getElementById('in-note').value=o.note||'';
+    document.getElementById('in-transport').value=o.transportFee||'';
+    pick('platform',o.platform||'');pick('format',o.format||'');pick('priceType',o.priceType||'');pick('status',o.status||'unpaid');pick('transport',o.hasTransport||'no');
+  }else{
+    title.textContent='新增订单';del.classList.add('hidden');
+    document.getElementById('edit-id').value='';
+    document.getElementById('in-store').value='';
+    document.getElementById('in-date').value=new Date().toISOString().split('T')[0];
+    document.getElementById('in-amount').value='';
+    document.getElementById('in-due-date').value='';
+    document.getElementById('in-pay-date').value='';
+    document.getElementById('in-note').value='';
+    document.getElementById('in-transport').value='';
+    pick('platform','');pick('format','');pick('priceType','');pick('status','unpaid');pick('transport','no');
+  }
+  document.getElementById('order-modal').classList.add('show');
+}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+document.getElementById('order-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('order-modal');});
+document.getElementById('pricing-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('pricing-modal');});
+
+const pickMap={platform:['xhs','dy','both'],format:['image','video'],priceType:['surface','underwater'],status:['paid','unpaid'],transport:['no','yes']};
+function pick(type,val){
+  editPicks[type]=val;
+  document.querySelectorAll('.picker-btn').forEach(b=>{
+    if(pickMap[type]&&pickMap[type].includes(b.dataset.val))b.classList.toggle('active',b.dataset.val===val);
+  });
+  if(type==='status')document.getElementById('field-pay-date').classList.toggle('hidden',val!=='paid');
+  if(type==='transport')document.getElementById('field-transport').classList.toggle('hidden',val!=='yes');
+}
+
+function saveOrder(){
+  const store=document.getElementById('in-store').value.trim();
+  const amount=parseFloat(document.getElementById('in-amount').value)||0;
+  if(!store){toast('请填写店名');return;}
+  if(!editPicks.platform){toast('请选择平台');return;}
+  if(!editPicks.format){toast('请选择合作形式');return;}
+  if(amount<=0){toast('请填写费用');return;}
+  const id=document.getElementById('edit-id').value||('o'+Date.now());
+  const data={
+    id,store,platform:editPicks.platform,format:editPicks.format,priceType:editPicks.priceType,
+    amount,status:editPicks.status,hasTransport:editPicks.transport,
+    transportFee:editPicks.transport==='yes'?(parseFloat(document.getElementById('in-transport').value)||0):0,
+    orderDate:document.getElementById('in-date').value,dueDate:document.getElementById('in-due-date').value,
+    payDate:editPicks.status==='paid'?document.getElementById('in-pay-date').value:'',
+    note:document.getElementById('in-note').value.trim()
+  };
+  const idx=cache.orders.findIndex(o=>o.id==id);
+  if(idx>=0)cache.orders[idx]=data;else cache.orders.push(data);
+  saveCache();pushOrder(data);closeModal('order-modal');render();toast(idx>=0?'已更新':'已添加');
+}
+function deleteOrder(){
+  const id=document.getElementById('edit-id').value;if(!id)return;
+  if(!confirm('确认删除？'))return;
+  cache.orders=cache.orders.filter(o=>o.id!=id);
+  saveCache();deleteOrderDB(id);closeModal('order-modal');render();toast('已删除');
+}
+
+// ========================
+// 报价
+// ========================
+function renderPricing(){
+  const[y,m]=currentMonth.split('-').map(Number);
+  document.getElementById('pricing-month-label').textContent=`${y}年${m}月报价`;
+  const mo=cache.orders.filter(o=>o.orderDate&&o.orderDate.startsWith(currentMonth));
+  const paid=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee,0);
+  const unpaid=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee,0);
+  document.getElementById('pstat-total').textContent='¥'+(paid+unpaid).toLocaleString();
+  document.getElementById('pstat-paid').textContent='¥'+paid.toLocaleString();
+  document.getElementById('pstat-unpaid').textContent='¥'+unpaid.toLocaleString();
+
+  const p=cache.pricing[currentMonth];
+  const d=document.getElementById('pricing-display');
+  if(p){
+    d.innerHTML=`<div class="pg-cell pg-label">格式</div><div class="pg-cell pg-label">🌊 水上</div><div class="pg-cell pg-label">🤿 水下</div>
+      <div class="pg-cell pg-label">🖼️ 图文</div><div class="pg-cell pg-val blue">¥${(p.imgSurface||0).toLocaleString()}</div><div class="pg-cell pg-val purple">¥${(p.imgUnderwater||0).toLocaleString()}</div>
+      <div class="pg-cell pg-label">🎬 视频</div><div class="pg-cell pg-val green">¥${(p.vidSurface||0).toLocaleString()}</div><div class="pg-cell pg-val amber">¥${(p.vidUnderwater||0).toLocaleString()}</div>`;
+  }else{
+    d.innerHTML='<div class="pg-cell" style="grid-column:span 3;color:var(--text-dim)">本月尚未设置报价，点击"编辑报价"</div>';
+  }
+  const keys=Object.keys(cache.pricing).sort().reverse();
+  const hist=document.getElementById('pricing-history');
+  if(keys.length===0){
+    hist.innerHTML='<div class="empty-state"><div class="icon">💰</div><div>暂无历史报价</div></div>';
+  }else{
+    hist.innerHTML=keys.map(k=>{
+      const[y,m]=k.split('-').map(Number);const pp=cache.pricing[k];
+      return `<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:6px;box-shadow:var(--shadow)">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">${y}年${m}月</div>
+        <div style="font-size:12px;color:var(--text-dim);display:flex;flex-wrap:wrap;gap:4px 12px">
+          <span>🖼️🌊 ¥${(pp.imgSurface||0).toLocaleString()}</span><span>🖼️🤿 ¥${(pp.imgUnderwater||0).toLocaleString()}</span>
+          <span>🎬🌊 ¥${(pp.vidSurface||0).toLocaleString()}</span><span>🎬🤿 ¥${(pp.vidUnderwater||0).toLocaleString()}</span>
+        </div></div>`;
+    }).join('');
+  }
+}
+function openPricingModal(){
+  const p=cache.pricing[currentMonth]||{};
+  document.getElementById('in-img-surf').value=p.imgSurface||'';
+  document.getElementById('in-img-under').value=p.imgUnderwater||'';
+  document.getElementById('in-vid-surf').value=p.vidSurface||'';
+  document.getElementById('in-vid-under').value=p.vidUnderwater||'';
+  document.getElementById('in-price-note').value=p.note||'';
+  document.getElementById('pricing-modal').classList.add('show');
+}
+function savePricing(){
+  const data={
+    imgSurface:parseFloat(document.getElementById('in-img-surf').value)||0,
+    imgUnderwater:parseFloat(document.getElementById('in-img-under').value)||0,
+    vidSurface:parseFloat(document.getElementById('in-vid-surf').value)||0,
+    vidUnderwater:parseFloat(document.getElementById('in-vid-under').value)||0,
+    note:document.getElementById('in-price-note').value.trim()
+  };
+  if(data.imgSurface+data.imgUnderwater+data.vidSurface+data.vidUnderwater<=0){toast('请至少填一个价格');return;}
+  cache.pricing[currentMonth]=data;
+  saveCache();pushPricing(currentMonth,data);closeModal('pricing-modal');renderPricing();toast('报价已保存');
+}
+
+// ========================
+// 未结款总览
+// ========================
+function renderUnpaid(){
+  const list=document.getElementById('unpaid-list');
+  const unpaid=cache.orders.filter(o=>o.status==='unpaid').sort((a,b)=>(b.dueDate||'').localeCompare(a.dueDate||''));
+  const total=unpaid.reduce((s,o)=>s+o.amount+o.transportFee,0);
+  if(unpaid.length===0){
+    list.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-dim)">🎉 没有未结款订单</div>';return;
+  }
+  const today=new Date().toISOString().split('T')[0];
+  const pm={xhs:'小红书',dy:'抖音',both:'双平台'};
+  list.innerHTML='<div style="font-size:13px;color:var(--red-dark);font-weight:600;padding:4px 0 8px">共'+unpaid.length+'笔 · ¥'+total.toLocaleString()+'</div>'+unpaid.map(o=>{
+    const m=o.orderDate?o.orderDate.substring(0,7):'';
+    const[y,mm]=m.split('-').map(Number);
+    const od=o.dueDate&&o.dueDate<today;
+    return `<div style="background:var(--bg);border-radius:10px;padding:10px;margin-bottom:5px;border-left:3px solid ${od?'var(--red)':'var(--yellow)'}" onclick="selectMonth('${m}');togglePanel('unpaid-panel');">
+      <div style="display:flex;justify-content:space-between"><div><div style="font-size:14px;font-weight:600">${o.store}</div><div style="font-size:11px;color:var(--text-dim)">${y}年${mm}月 · ${pm[o.platform]} · ${o.format==='image'?'图文':'视频'}</div></div>
+      <div style="font-size:15px;font-weight:700;color:var(--red-dark)">¥${(o.amount+o.transportFee).toLocaleString()}</div></div>
+      ${od?'<div style="font-size:11px;color:var(--red-dark);margin-top:3px">⚠ 已逾期 '+o.dueDate+'</div>':o.dueDate?'<div style="font-size:11px;color:var(--text-dim);margin-top:3px">⏰ 约定 '+o.dueDate+'</div>':''}
+    </div>`;
+  }).join('');
+}
+
+// ========================
+// 店铺统计
+// ========================
+function renderStoreStats(){
+  const list=document.getElementById('store-list');
+  const map={};
+  cache.orders.forEach(o=>{
+    const n=o.store||'未命名';if(!map[n])map[n]={count:0,total:0,paid:0,unpaid:0,platforms:{},last:''};
+    map[n].count++;map[n].total+=o.amount+o.transportFee;
+    if(o.status==='paid')map[n].paid+=o.amount+o.transportFee;else map[n].unpaid+=o.amount+o.transportFee;
+    const pm=o.platform||'xhs';map[n].platforms[pm]=(map[n].platforms[pm]||0)+1;
+    if(o.orderDate&&o.orderDate>map[n].last)map[n].last=o.orderDate;
+  });
+  const arr=Object.entries(map).map(([name,d])=>({name,...d})).sort((a,b)=>b.count-a.count);
+  if(arr.length===0){list.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-dim)">暂无数据</div>';return;}
+  const pn={xhs:'小红书',dy:'抖音',both:'双平台'};
+  list.innerHTML='<div style="font-size:13px;color:var(--text-dim);font-weight:600;padding:4px 0 8px">共'+arr.length+'家店铺</div>'+arr.map((s,i)=>{
+    const ps=Object.entries(s.platforms).map(([k,v])=>pn[k]+'×'+v).join(' · ');
+    return `<div style="background:var(--bg);border-radius:10px;padding:11px;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between"><div><div style="font-size:14px;font-weight:600">${i+1}. ${s.name}</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px">${ps} · 最近 ${s.last}</div></div><div style="font-size:18px;font-weight:700;color:var(--blue)">${s.count}单</div></div>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <div style="flex:1;background:var(--card);border-radius:8px;padding:5px;text-align:center"><div style="font-size:10px;color:var(--text-dim)">总收入</div><div style="font-size:13px;font-weight:700">¥${s.total.toLocaleString()}</div></div>
+        <div style="flex:1;background:var(--green-dim);border-radius:8px;padding:5px;text-align:center"><div style="font-size:10px;color:var(--green-dark)">已结</div><div style="font-size:13px;font-weight:700;color:var(--green-dark)">¥${s.paid.toLocaleString()}</div></div>
+        <div style="flex:1;background:var(--red-dim);border-radius:8px;padding:5px;text-align:center"><div style="font-size:10px;color:var(--red-dark)">未结</div><div style="font-size:13px;font-weight:700;color:var(--red-dark)">¥${s.unpaid.toLocaleString()}</div></div>
+      </div></div>`;
+  }).join('');
+}
+
+// ========================
+// 待办（苹果提醒事项风格）
+// ========================
+function openTodoApp(){document.getElementById('todo-app').classList.add('show');renderTodos();}
+function closeTodoApp(){document.getElementById('todo-app').classList.remove('show');}
+function addTodo(){
+  const input=document.getElementById('todo-input');const text=input.value.trim();
+  if(!text){toast('请输入内容');return;}
+  const t={id:'t'+Date.now(),text,done:false,created:new Date().toISOString().split('T')[0]};
+  cache.todos.unshift(t);saveCache();pushTodo(t);input.value='';renderTodos();
+}
+function toggleTodo(id){
+  const t=cache.todos.find(x=>x.id==id);if(!t)return;
+  t.done=!t.done;saveCache();pushTodo(t);renderTodos();
+}
+function removeTodo(id){
+  cache.todos=cache.todos.filter(x=>x.id!=id);saveCache();deleteTodoDB(id);renderTodos();
+}
+function renderTodos(){
+  const list=document.getElementById('todo-list');
+  if(cache.todos.length===0){
+    list.innerHTML='<div class="todo-empty"><div class="icon">✅</div><div>暂无待办事项</div></div>';return;
+  }
+  const pending=cache.todos.filter(t=>!t.done);
+  const done=cache.todos.filter(t=>t.done);
+  let html='';
+  if(pending.length>0){
+    html+='<div class="todo-section-title">待完成 · '+pending.length+'</div>';
+    html+=pending.map(t=>todoItemHtml(t)).join('');
+  }
+  if(done.length>0){
+    html+='<div class="todo-section-title">已完成 · '+done.length+'</div>';
+    html+=done.map(t=>todoItemHtml(t)).join('');
+  }
+  list.innerHTML=html;
+}
+function todoItemHtml(t){
+  return `<div class="todo-item${t.done?' done':''}">
+    <div class="todo-check${t.done?' checked':''}" onclick="toggleTodo('${t.id}')"></div>
+    <div style="flex:1"><div class="todo-text">${t.text}</div><div class="todo-date">${t.created||''}</div></div>
+    <button class="todo-delete" onclick="removeTodo('${t.id}')">✕</button>
+  </div>`;
+}
+
+// ========================
+// 配置
+// ========================
+function saveConfig(){
+  const url=document.getElementById('config-url').value.trim();
+  const key=document.getElementById('config-key').value.trim();
+  if(!url||!key){toast('请填写完整');return;}
+  SUPABASE_URL=url;SUPABASE_ANON_KEY=key;
+  localStorage.setItem('sb_url',url);localStorage.setItem('sb_key',key);
+  togglePanel('config-panel');
+  if(initSupabase()){
+    syncAll().then(()=>{
+      subscribeRealtime();
+      toast('☁️ 云端已连接');
+    });
+  }else{
+    toast('连接失败，请检查密钥');
+  }
+}
+
+// ========================
+// 分享
+// ========================
+function copyShareLink(){
+  const input=document.getElementById('share-url');input.select();
+  if(navigator.clipboard)navigator.clipboard.writeText(input.value).then(()=>toast('链接已复制'));
+  else{document.execCommand('copy');toast('链接已复制');}
+}
+
+// ========================
+// Toast
+// ========================
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
+
+// ========================
+// 初始化
+// ========================
+async function init(){
+  document.getElementById('share-url').value=location.href;
+  // 示例数据
+  if(cache.orders.length===0&&Object.keys(cache.pricing).length===0){
+    const today=new Date();const m=today.toISOString().substring(0,7);
+    const f=x=>x.toISOString().split('T')[0];
+    const d1=new Date(today);d1.setDate(d1.getDate()-5);
+    const d2=new Date(today);d2.setDate(d2.getDate()-2);
+    const due1=new Date(today);due1.setDate(due1.getDate()+3);
+    const due2=new Date(today);due2.setDate(due2.getDate()-1);
+    cache.orders=[
+      {id:'o1',store:'张记火锅（国贸店）',platform:'xhs',format:'image',priceType:'surface',amount:1500,status:'paid',payDate:f(d1),dueDate:f(d1),orderDate:f(d2),hasTransport:'yes',transportFee:200,note:'需返图3张'},
+      {id:'o2',store:'蜜雪冰城（步行街）',platform:'both',format:'video',priceType:'surface',amount:3000,status:'unpaid',payDate:'',dueDate:f(due1),orderDate:f(d2),hasTransport:'no',transportFee:0,note:'双平台各发1条'},
+      {id:'o3',store:'老王烧烤',platform:'dy',format:'video',priceType:'underwater',amount:800,status:'unpaid',payDate:'',dueDate:f(due2),orderDate:f(d2),hasTransport:'yes',transportFee:150,note:'约定3天付款'}
+    ];
+    cache.pricing[m]={imgSurface:1500,imgUnderwater:1000,vidSurface:3000,vidUnderwater:2000,note:'双平台打包价另议'};
+    cache.todos=[
+      {id:'t1',text:'本周需完成3篇探店图文',done:false,created:f(today)},
+      {id:'t2',text:'联系张记火锅返图',done:true,created:f(d2)}
+    ];
+    saveCache();
+  }
+  render();renderPricing();
+  if(initSupabase()){await syncAll();subscribeRealtime();}
+}
+init();
+</script>
+</body>
+</html>
