@@ -248,6 +248,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
       <h3>🔗 邀请朋友共享</h3>
       <div style="font-size:12px;color:var(--text-dim)">把链接发给朋友，数据实时同步。</div>
       <div class="share-link"><input type="text" id="share-url" readonly><button onclick="copyShareLink()">复制</button></div>
+      <div id="room-display" style="font-size:11px;color:var(--text-dim);margin-top:8px"></div>
     </div>
   </div>
 </div>
@@ -465,6 +466,7 @@ async function syncAll(){
     setSyncStatus('','☁️ 云端已连接');
     render();renderPricing();renderTodos();
   }catch(e){
+    console.error('syncAll错误:',e);
     setSyncStatus('offline','⚠ 离线模式');
   }
   isSyncing=false;
@@ -498,8 +500,14 @@ function subscribeRealtime(){
 // CRUD - Orders
 // ========================
 async function pushOrder(o){
-  if(!sb)return;
-  await sb.from('orders').upsert({id:o.id,...mapOrderToDB(o)});
+  if(!sb){console.warn('pushOrder: sb未初始化');return;}
+  try{
+    const payload={id:o.id,...mapOrderToDB(o)};
+    console.log('pushOrder上传:',payload);
+    const{error}=await sb.from('orders').upsert(payload);
+    if(error){console.error('pushOrder错误:',error);toast('⚠ 同步失败: '+error.message);}
+    else{console.log('pushOrder成功');}
+  }catch(e){console.error('pushOrder异常:',e);}
 }
 async function deleteOrderDB(id){
   if(!sb)return;
@@ -739,7 +747,9 @@ function saveOrder(){
   };
   const idx=cache.orders.findIndex(o=>o.id==id);
   if(idx>=0)cache.orders[idx]=data;else cache.orders.push(data);
-  saveCache();pushOrder(data);closeModal('order-modal');render();toast(idx>=0?'已更新':'已添加');
+  saveCache();
+  closeModal('order-modal');render();toast(idx>=0?'已更新':'已添加');
+  pushOrder(data).then(()=>{syncAll();}); // 保存后上传并同步
 }
 function deleteOrder(){
   const id=document.getElementById('edit-id').value;if(!id)return;
@@ -805,7 +815,8 @@ function savePricing(){
   };
   if(data.imgSurface+data.imgUnderwater+data.vidSurface+data.vidUnderwater<=0){toast('请至少填一个价格');return;}
   cache.pricing[currentMonth]=data;
-  saveCache();pushPricing(currentMonth,data);closeModal('pricing-modal');renderPricing();toast('报价已保存');
+  saveCache();closeModal('pricing-modal');renderPricing();toast('报价已保存');
+  pushPricing(currentMonth,data).then(()=>{syncAll();});
 }
 
 // ========================
@@ -943,6 +954,8 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 // ========================
 async function init(){
   document.getElementById('share-url').value=location.href;
+  const rd=document.getElementById('room-display');
+  if(rd)rd.textContent='当前房间: '+ROOM+'（两人必须相同才能共享）';
   // 先尝试连接云端
   if(initSupabase()){
     // 先上传本地数据到云端，再拉取合并
