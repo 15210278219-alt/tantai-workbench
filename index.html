@@ -344,6 +344,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
     <div class="form-group"><label class="form-label">价格档位</label><div class="picker-row"><div class="picker-btn p-surface" data-val="surface" onclick="pick('priceType','surface')">🌊 水上</div><div class="picker-btn p-underwater" data-val="underwater" onclick="pick('priceType','underwater')">🤿 水下</div></div></div>
     <div class="form-group"><label class="form-label">接单日期 *</label><input type="date" class="form-input" id="in-date"></div>
     <div class="form-group"><label class="form-label">拍摄时间</label><input type="datetime-local" class="form-input" id="in-shoot-time"></div>
+    <div class="form-group"><label class="form-label">约定发布日期</label><input type="date" class="form-input" id="in-publish-due"></div>
+    <div class="form-group"><label class="form-label">实际发布日期</label><input type="date" class="form-input" id="in-publish-date"></div>
     <div class="form-group"><label class="form-label">合作费用（元）*</label><input type="number" class="form-input" id="in-amount" placeholder="0" min="0" step="100"></div>
     <div class="form-group"><label class="form-label">车马费</label><div class="picker-row"><div class="picker-btn p-no-tr" data-val="no" onclick="pick('transport','no')">无</div><div class="picker-btn p-has-tr" data-val="yes" onclick="pick('transport','yes')">有车马费</div></div></div>
     <div class="form-group hidden" id="field-transport"><label class="form-label">车马费金额（元）</label><input type="number" class="form-input" id="in-transport" placeholder="0" min="0" step="50"></div>
@@ -479,10 +481,10 @@ async function syncAll(){
 }
 
 function mapOrderToDB(o){
-  return{store:o.store,platform:o.platform,format:o.format,price_type:o.priceType,amount:o.amount,has_transport:o.hasTransport,transport_fee:o.transportFee,status:o.status,order_date:o.orderDate,shoot_time:o.shootTime||null,due_date:o.dueDate,pay_date:o.payDate,note:o.note,room_id:ROOM};
+  return{store:o.store,platform:o.platform,format:o.format,price_type:o.priceType,amount:o.amount,has_transport:o.hasTransport,transport_fee:o.transportFee,status:o.status,order_date:o.orderDate,shoot_time:o.shootTime||null,publish_due:o.publishDue||null,publish_date:o.publishDate||null,due_date:o.dueDate,pay_date:o.payDate,note:o.note,room_id:ROOM};
 }
 function mapOrderFromDB(r){
-  return{id:r.id,store:r.store,platform:r.platform,format:r.format,priceType:r.price_type,amount:parseFloat(r.amount||0),hasTransport:r.has_transport,transportFee:parseFloat(r.transport_fee||0),status:r.status,orderDate:r.order_date,shootTime:r.shoot_time||'',dueDate:r.due_date,payDate:r.pay_date,note:r.note};
+  return{id:r.id,store:r.store,platform:r.platform,format:r.format,priceType:r.price_type,amount:parseFloat(r.amount||0),hasTransport:r.has_transport,transportFee:parseFloat(r.transport_fee||0),status:r.status,orderDate:r.order_date,shootTime:r.shoot_time||'',publishDue:r.publish_due||'',publishDate:r.publish_date||'',dueDate:r.due_date,payDate:r.pay_date,note:r.note};
 }
 function mapPricingFromDB(r){
   return{imgSurface:parseFloat(r.img_surface||0),imgUnderwater:parseFloat(r.img_underwater||0),vidSurface:parseFloat(r.vid_surface||0),vidUnderwater:parseFloat(r.vid_underwater||0),note:r.note};
@@ -659,6 +661,8 @@ function orderCardHtml(o,today){
     meta+=`<span class="${diff<0?'shoot-done':'shoot-tag'}">${label}</span>`;
   }
   if(o.dueDate)meta+=`<span>⏰ ${o.dueDate}</span>`;
+  if(o.publishDue)meta+=`<span>📤 约定发布 ${o.publishDue}</span>`;
+  if(o.publishDate)meta+=`<span>✅ 已发布 ${o.publishDate}</span>`;
   if(o.payDate)meta+=`<span>💰 ${o.payDate}</span>`;
   meta+='</div>';
   const tags=`<span class="tag ${pm[1]}">${pm[0]}</span>${o.format?`<span class="tag ${o.format}">${o.format==='image'?'图文':'视频'}</span>`:''}${o.priceType?`<span class="tag ${o.priceType}">${o.priceType==='surface'?'水上':'水下'}</span>`:''}${o.hasTransport==='yes'?`<span class="tag transport">🚗+${o.transportFee}</span>`:''}`;
@@ -734,6 +738,8 @@ function openOrderModal(id){
     document.getElementById('in-store').value=o.store||'';
     document.getElementById('in-date').value=o.orderDate||'';
     document.getElementById('in-shoot-time').value=o.shootTime||'';
+    document.getElementById('in-publish-due').value=o.publishDue||'';
+    document.getElementById('in-publish-date').value=o.publishDate||'';
     document.getElementById('in-amount').value=o.amount||'';
     document.getElementById('in-due-date').value=o.dueDate||'';
     document.getElementById('in-pay-date').value=o.payDate||'';
@@ -746,6 +752,8 @@ function openOrderModal(id){
     document.getElementById('in-store').value='';
     document.getElementById('in-date').value=new Date().toISOString().split('T')[0];
     document.getElementById('in-shoot-time').value='';
+    document.getElementById('in-publish-due').value='';
+    document.getElementById('in-publish-date').value='';
     document.getElementById('in-amount').value='';
     document.getElementById('in-due-date').value='';
     document.getElementById('in-pay-date').value='';
@@ -781,7 +789,7 @@ function saveOrder(){
     id,store,platform:editPicks.platform,format:editPicks.format,priceType:editPicks.priceType,
     amount,status:editPicks.status,hasTransport:editPicks.transport,
     transportFee:editPicks.transport==='yes'?(parseFloat(document.getElementById('in-transport').value)||0):0,
-    orderDate:document.getElementById('in-date').value,shootTime:document.getElementById('in-shoot-time').value,dueDate:document.getElementById('in-due-date').value,
+    orderDate:document.getElementById('in-date').value,shootTime:document.getElementById('in-shoot-time').value,publishDue:document.getElementById('in-publish-due').value,publishDate:document.getElementById('in-publish-date').value,dueDate:document.getElementById('in-due-date').value,
     payDate:editPicks.status==='paid'?document.getElementById('in-pay-date').value:'',
     note:document.getElementById('in-note').value.trim()
   };

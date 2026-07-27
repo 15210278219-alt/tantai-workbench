@@ -19,6 +19,8 @@ create table if not exists public.orders (
   status        text default 'unpaid',
   order_date    text,
   shoot_time    text,
+  publish_due   text,
+  publish_date  text,
   due_date      text,
   pay_date      text,
   note          text,
