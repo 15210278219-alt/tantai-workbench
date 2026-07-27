@@ -380,9 +380,15 @@ let sb = null;
 let rtChannel = null;
 
 function getRoom(){
-  if(location.hash&&location.hash.startsWith('#room='))return location.hash.substring(6);
+  // 优先从URL读取room
+  if(location.hash&&location.hash.startsWith('#room=')){
+    const r=location.hash.substring(6);
+    localStorage.setItem('wb_room',r); // 同步到本地，确保一致
+    return r;
+  }
+  // 从本地读取
   let r=localStorage.getItem('wb_room');
-  if(!r){r='wb'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('wb_room',r);}
+  if(!r){r='wb20250728';localStorage.setItem('wb_room',r);}
   history.replaceState(null,'','#room='+r);
   return r;
 }
