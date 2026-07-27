@@ -397,7 +397,9 @@ const ROOM=getRoom();
 
 function initSupabase(){
   try{
-    sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{headers:{'x-room-id':ROOM}});
+    sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
+      global:{headers:{'x-room-id':ROOM}}
+    });
     setSyncStatus('syncing','连接中...');
     return true;
   }catch(e){
@@ -503,11 +505,16 @@ async function pushOrder(o){
   if(!sb){console.warn('pushOrder: sb未初始化');return;}
   try{
     const payload={id:o.id,...mapOrderToDB(o)};
-    console.log('pushOrder上传:',payload);
-    const{error}=await sb.from('orders').upsert(payload);
-    if(error){console.error('pushOrder错误:',error);toast('⚠ 同步失败: '+error.message);}
-    else{console.log('pushOrder成功');}
-  }catch(e){console.error('pushOrder异常:',e);}
+    console.log('pushOrder上传 payload:',JSON.stringify(payload));
+    console.log('pushOrder ROOM:',ROOM);
+    const{data,error}=await sb.from('orders').upsert(payload).select();
+    if(error){
+      console.error('pushOrder错误:',JSON.stringify(error));
+      toast('⚠ 同步失败: '+error.message);
+    }else{
+      console.log('pushOrder成功 data:',data);
+    }
+  }catch(e){console.error('pushOrder异常:',e);toast('⚠ 同步异常: '+e.message);}
 }
 async function deleteOrderDB(id){
   if(!sb)return;
