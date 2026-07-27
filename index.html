@@ -425,26 +425,49 @@ let panelYear=new Date().getFullYear();
 let editPicks={platform:'',format:'',priceType:'',status:'unpaid',transport:'no'};
 
 // ========================
-// 云端同步
+// 云端同步（合并模式，不丢数据）
 // ========================
+let isSyncing=false;
 async function syncAll(){
   if(!sb){setSyncStatus('offline','⚠ 未配置云端');return;}
+  if(isSyncing)return; // 防止重复同步
+  isSyncing=true;
   setSyncStatus('syncing','同步中...');
   try{
+    // 1. 先把本地数据上传到云端（upsert不会覆盖云端已有的同ID数据，会更新）
+    for(const o of cache.orders){await pushOrder(o);}
+    for(const m in cache.pricing){await pushPricing(m,cache.pricing[m]);}
+    for(const t of cache.todos){await pushTodo(t);}
+    
+    // 2. 再拉取云端全部数据
     const[{data:orders},{data:pricing},{data:todos}]=await Promise.all([
       sb.from('orders').select('*'),
       sb.from('pricing').select('*'),
       sb.from('todos').select('*')
     ]);
-    if(orders){cache.orders=orders.map(mapOrderFromDB);}
-    if(pricing){cache.pricing={};pricing.forEach(p=>{cache.pricing[p.month]=mapPricingFromDB(p);});}
-    if(todos){cache.todos=todos.map(t=>({id:t.id,text:t.text,done:t.done,created:t.created}));}
+    
+    // 3. 合并：云端为主，本地补充（不丢本地数据）
+    if(orders){
+      const cloudIds=new Set(orders.map(o=>o.id));
+      // 保留本地有但云端没有的（刚添加还没同步的）
+      const localOnly=cache.orders.filter(o=>!cloudIds.has(o.id));
+      cache.orders=[...orders.map(mapOrderFromDB),...localOnly];
+    }
+    if(pricing){
+      pricing.forEach(p=>{cache.pricing[p.month]=mapPricingFromDB(p);});
+    }
+    if(todos){
+      const cloudIds=new Set(todos.map(t=>t.id));
+      const localOnly=cache.todos.filter(t=>!cloudIds.has(t.id));
+      cache.todos=[...todos.map(t=>({id:t.id,text:t.text,done:t.done,created:t.created})),...localOnly];
+    }
     saveCache();
     setSyncStatus('','☁️ 云端已连接');
     render();renderPricing();renderTodos();
   }catch(e){
     setSyncStatus('offline','⚠ 离线模式');
   }
+  isSyncing=false;
 }
 
 function mapOrderToDB(o){
@@ -920,8 +943,29 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 // ========================
 async function init(){
   document.getElementById('share-url').value=location.href;
-  // 示例数据
-  if(cache.orders.length===0&&Object.keys(cache.pricing).length===0){
+  // 先尝试连接云端
+  if(initSupabase()){
+    // 先上传本地数据到云端，再拉取合并
+    await syncAll();
+    subscribeRealtime();
+    // 如果本地和云端都没有数据，才加载示例
+    if(cache.orders.length===0&&Object.keys(cache.pricing).length===0){
+      loadSampleData();
+      // 上传导示数据到云端
+      for(const o of cache.orders){await pushOrder(o);}
+      for(const m in cache.pricing){await pushPricing(m,cache.pricing[m]);}
+      for(const t of cache.todos){await pushTodo(t);}
+      render();renderPricing();
+    }
+  }else{
+    // 离线模式：加载示例数据
+    if(cache.orders.length===0&&Object.keys(cache.pricing).length===0){
+      loadSampleData();
+    }
+    render();renderPricing();
+  }
+}
+function loadSampleData(){
     const today=new Date();const m=today.toISOString().substring(0,7);
     const f=x=>x.toISOString().split('T')[0];
     const d1=new Date(today);d1.setDate(d1.getDate()-5);
@@ -939,9 +983,6 @@ async function init(){
       {id:'t2',text:'联系张记火锅返图',done:true,created:f(d2)}
     ];
     saveCache();
-  }
-  render();renderPricing();
-  if(initSupabase()){await syncAll();subscribeRealtime();}
 }
 init();
 </script>
