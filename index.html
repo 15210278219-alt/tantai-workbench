@@ -364,9 +364,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
     <div class="form-group"><label class="form-label">约定发布日期</label><input type="date" class="form-input" id="in-publish-due"></div>
     <div class="form-group"><label class="form-label">实际发布日期</label><input type="date" class="form-input" id="in-publish-date"></div>
     <div class="form-group"><label class="form-label">合作费用（元）*</label><input type="number" class="form-input" id="in-amount" placeholder="0" min="0" step="100"></div>
-    <div class="form-group"><label class="form-label">车马费</label><div class="picker-row"><div class="picker-btn p-no-tr" data-val="no" onclick="pick('transport','no')">无</div><div class="picker-btn p-has-tr" data-val="yes" onclick="pick('transport','yes')">有车马费</div></div></div>
+    <div class="form-group"><label class="form-label">车马费</label><div class="picker-row"><div class="picker-btn p-no-tr" data-val="tr_no" onclick="pick('transport','tr_no')">无</div><div class="picker-btn p-has-tr" data-val="tr_yes" onclick="pick('transport','tr_yes')">有车马费</div></div></div>
     <div class="form-group hidden" id="field-transport"><label class="form-label">车马费金额（元）</label><input type="number" class="form-input" id="in-transport" placeholder="0" min="0" step="50"></div>
-    <div class="form-group"><label class="form-label">投流</label><div class="picker-row"><div class="picker-btn p-no-touliu" data-val="no" onclick="pick('touliu','no')">无</div><div class="picker-btn p-has-touliu" data-val="yes" onclick="pick('touliu','yes')">有投流</div></div></div>
+    <div class="form-group"><label class="form-label">投流</label><div class="picker-row"><div class="picker-btn p-no-touliu" data-val="tl_no" onclick="pick('touliu','tl_no')">无</div><div class="picker-btn p-has-touliu" data-val="tl_yes" onclick="pick('touliu','tl_yes')">有投流</div></div></div>
     <div class="form-group hidden" id="field-touliu"><label class="form-label">投流金额（元）</label><input type="number" class="form-input" id="in-touliu" placeholder="0" min="0" step="50"></div>
     <div class="form-group"><label class="form-label">支付状态</label><div class="picker-row"><div class="picker-btn p-unpaid" data-val="unpaid" onclick="pick('status','unpaid')">未付款</div><div class="picker-btn p-paid" data-val="paid" onclick="pick('status','paid')">已付款</div></div></div>
     <div class="form-group hidden" id="field-pay-date"><label class="form-label">实际支付日期</label><input type="date" class="form-input" id="in-pay-date"></div>
@@ -461,7 +461,7 @@ let cache=loadCache();
 let currentMonth=new Date().toISOString().substring(0,7);
 let currentFilter='all';
 let panelYear=new Date().getFullYear();
-let editPicks={platform:'',format:'',priceType:'',status:'unpaid',transport:'no',touliu:'no'};
+let editPicks={platform:'',format:'',priceType:'',status:'unpaid',transport:'tr_no',touliu:'tl_no'};
 
 // ========================
 // 云端同步（合并模式，不丢数据）
@@ -797,7 +797,7 @@ function openOrderModal(id){
     document.getElementById('in-note').value=o.note||'';
     document.getElementById('in-transport').value=o.transportFee||'';
     document.getElementById('in-touliu').value=o.touliuFee||'';
-    pick('platform',o.platform||'');pick('format',o.format||'');pick('priceType',o.priceType||'');pick('status',o.status||'unpaid');pick('transport',o.hasTransport||'no');pick('touliu',o.hasTouliu||'no');
+    pick('platform',o.platform||'');pick('format',o.format||'');pick('priceType',o.priceType||'');pick('status',o.status||'unpaid');pick('transport',o.hasTransport==='yes'?'tr_yes':'tr_no');pick('touliu',o.hasTouliu==='yes'?'tl_yes':'tl_no');
   }else{
     title.textContent='新增订单';del.classList.add('hidden');
     document.getElementById('edit-id').value='';
@@ -812,7 +812,7 @@ function openOrderModal(id){
     document.getElementById('in-note').value='';
     document.getElementById('in-transport').value='';
     document.getElementById('in-touliu').value='';
-    pick('platform','');pick('format','');pick('priceType','');pick('status','unpaid');pick('transport','no');pick('touliu','no');
+    pick('platform','');pick('format','');pick('priceType','');pick('status','unpaid');pick('transport','tr_no');pick('touliu','tl_no');
   }
   document.getElementById('order-modal').classList.add('show');
 }
@@ -820,15 +820,15 @@ function closeModal(id){document.getElementById(id).classList.remove('show');}
 document.getElementById('order-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('order-modal');});
 document.getElementById('pricing-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('pricing-modal');});
 
-const pickMap={platform:['xhs','dy','both'],format:['image','single_video','guide_video'],priceType:['surface','underwater'],status:['paid','unpaid'],transport:['no','yes'],touliu:['no','yes']};
+const pickMap={platform:['xhs','dy','both'],format:['image','single_video','guide_video'],priceType:['surface','underwater'],status:['paid','unpaid'],transport:['tr_no','tr_yes'],touliu:['tl_no','tl_yes']};
 function pick(type,val){
   editPicks[type]=val;
   document.querySelectorAll('.picker-btn').forEach(b=>{
     if(pickMap[type]&&pickMap[type].includes(b.dataset.val))b.classList.toggle('active',b.dataset.val===val);
   });
   if(type==='status')document.getElementById('field-pay-date').classList.toggle('hidden',val!=='paid');
-  if(type==='transport')document.getElementById('field-transport').classList.toggle('hidden',val!=='yes');
-  if(type==='touliu')document.getElementById('field-touliu').classList.toggle('hidden',val!=='yes');
+  if(type==='transport')document.getElementById('field-transport').classList.toggle('hidden',val!=='tr_yes');
+  if(type==='touliu')document.getElementById('field-touliu').classList.toggle('hidden',val!=='tl_yes');
 }
 
 function saveOrder(){
@@ -841,9 +841,9 @@ function saveOrder(){
   const id=document.getElementById('edit-id').value||('o'+Date.now());
   const data={
     id,store,platform:editPicks.platform,format:editPicks.format,priceType:editPicks.priceType,
-    amount,status:editPicks.status,hasTransport:editPicks.transport,
-    transportFee:editPicks.transport==='yes'?(parseFloat(document.getElementById('in-transport').value)||0):0,
-    hasTouliu:editPicks.touliu,touliuFee:editPicks.touliu==='yes'?(parseFloat(document.getElementById('in-touliu').value)||0):0,
+    amount,status:editPicks.status,hasTransport:editPicks.transport==='tr_yes'?'yes':'no',
+    transportFee:editPicks.transport==='tr_yes'?(parseFloat(document.getElementById('in-transport').value)||0):0,
+    hasTouliu:editPicks.touliu==='tl_yes'?'yes':'no',touliuFee:editPicks.touliu==='tl_yes'?(parseFloat(document.getElementById('in-touliu').value)||0):0,
     orderDate:document.getElementById('in-date').value,shootTime:document.getElementById('in-shoot-time').value,publishDue:document.getElementById('in-publish-due').value,publishDate:document.getElementById('in-publish-date').value,dueDate:document.getElementById('in-due-date').value,
     payDate:editPicks.status==='paid'?document.getElementById('in-pay-date').value:'',
     note:document.getElementById('in-note').value.trim()
