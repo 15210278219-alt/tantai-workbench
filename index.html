@@ -480,19 +480,14 @@ async function syncAll(){
   isSyncing=true;
   setSyncStatus('syncing','同步中...');
   try{
-    // 1. 先把本地数据上传到云端（跳过已删除的）
-    for(const o of cache.orders){if(!deletedOrderIds.has(o.id))await pushOrder(o);}
-    for(const m in cache.pricing){await pushPricing(m,cache.pricing[m]);}
-    for(const t of cache.todos){await pushTodo(t);}
-    
-    // 2. 再拉取云端全部数据
+    // 1. 先拉取云端全部数据（以云端为准）
     const[{data:orders},{data:pricing},{data:todos}]=await Promise.all([
       sb.from('orders').select('*'),
       sb.from('pricing').select('*'),
       sb.from('todos').select('*')
     ]);
     
-    // 3. 合并：云端为主，本地补充（不丢本地数据）
+    // 2. 合并：云端为主，本地补充（不丢本地数据）
     if(orders){
       const cloudIds=new Set(orders.map(o=>o.id));
       const localOnly=cache.orders.filter(o=>!cloudIds.has(o.id));
@@ -1184,49 +1179,14 @@ async function init(){
   document.getElementById('share-url').value=location.href;
   const rd=document.getElementById('room-display');
   if(rd)rd.textContent='当前房间: '+ROOM+'（两人必须相同才能共享）';
-  // 先尝试连接云端
+  // 1. 先显示本地数据，避免页面卡住
+  render();renderPricing();renderTodos();
+  // 2. 异步连接云端并同步
   if(initSupabase()){
-    setSyncStatus('syncing','同步中...');
-    try{
-      // 加超时保护，5秒内没响应就跳过
-      const fetchPromise=Promise.all([
-        sb.from('orders').select('*'),
-        sb.from('pricing').select('*'),
-        sb.from('todos').select('*')
-      ]);
-      const timeoutPromise=new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),5000));
-      const[{data:orders},{data:pricing},{data:todos}]=await Promise.race([fetchPromise,timeoutPromise]);
-      // 云端数据为准，覆盖本地
-      if(orders){
-        cache.orders=orders.map(mapOrderFromDB).filter(o=>!deletedOrderIds.has(o.id));
-      }
-      if(pricing){
-        pricing.forEach(p=>{cache.pricing[p.month]=mapPricingFromDB(p);});
-      }
-      if(todos){
-        cache.todos=todos.map(t=>({id:t.id,text:t.text,done:t.done,created:t.created}));
-      }
-      saveCache();
-      setSyncStatus('','☁️ 云端已连接');
-    }catch(e){
-      console.error('init拉取错误:',e);
-      setSyncStatus('offline','⚠ 同步超时，使用本地数据');
-    }
     subscribeRealtime();
-    const cloudEmpty = cache.orders.length===0 && Object.keys(cache.pricing).length===0;
-    if(cloudEmpty){
-      loadSampleData();
-      for(const o of cache.orders){if(!deletedOrderIds.has(o.id))await pushOrder(o);}
-      for(const m in cache.pricing){await pushPricing(m,cache.pricing[m]);}
-      for(const t of cache.todos){await pushTodo(t);}
-    }
-    render();renderPricing();renderTodos();
+    syncAll();
   }else{
-    // 离线模式：仅本地无数据时加载示例
-    if(cache.orders.length===0&&Object.keys(cache.pricing).length===0){
-      loadSampleData();
-    }
-    render();renderPricing();
+    setSyncStatus('offline','⚠ 未配置云端');
   }
 }
 function loadSampleData(){
