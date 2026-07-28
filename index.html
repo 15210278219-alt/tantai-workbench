@@ -1186,14 +1186,16 @@ async function init(){
   if(rd)rd.textContent='当前房间: '+ROOM+'（两人必须相同才能共享）';
   // 先尝试连接云端
   if(initSupabase()){
-    // 修复：先从云端拉取数据（不先上传本地，防止旧缓存污染云端）
     setSyncStatus('syncing','同步中...');
     try{
-      const[{data:orders},{data:pricing},{data:todos}]=await Promise.all([
+      // 加超时保护，5秒内没响应就跳过
+      const fetchPromise=Promise.all([
         sb.from('orders').select('*'),
         sb.from('pricing').select('*'),
         sb.from('todos').select('*')
       ]);
+      const timeoutPromise=new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),5000));
+      const[{data:orders},{data:pricing},{data:todos}]=await Promise.race([fetchPromise,timeoutPromise]);
       // 云端数据为准，覆盖本地
       if(orders){
         cache.orders=orders.map(mapOrderFromDB).filter(o=>!deletedOrderIds.has(o.id));
@@ -1205,14 +1207,16 @@ async function init(){
         cache.todos=todos.map(t=>({id:t.id,text:t.text,done:t.done,created:t.created}));
       }
       saveCache();
-    }catch(e){console.error('init拉取错误:',e);}
-    // 再启动正常同步
+      setSyncStatus('','☁️ 云端已连接');
+    }catch(e){
+      console.error('init拉取错误:',e);
+      setSyncStatus('offline','⚠ 同步超时，使用本地数据');
+    }
     subscribeRealtime();
-    setSyncStatus('','☁️ 云端已连接');
     const cloudEmpty = cache.orders.length===0 && Object.keys(cache.pricing).length===0;
     if(cloudEmpty){
       loadSampleData();
-      for(const o of cache.orders){await pushOrder(o);}
+      for(const o of cache.orders){if(!deletedOrderIds.has(o.id))await pushOrder(o);}
       for(const m in cache.pricing){await pushPricing(m,cache.pricing[m]);}
       for(const t of cache.todos){await pushTodo(t);}
     }
