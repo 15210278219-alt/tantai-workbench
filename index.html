@@ -726,7 +726,7 @@ function orderCardHtml(o,today){
     ${meta}${overdue}<div class="order-footer"><span class="status-badge ${sm[1]}">${sm[0]}</span></div>${note}`;
   return `<div class="order-item-wrap" id="wrap-${o.id}">
     <div class="order-delete-btn" onclick="event.stopPropagation();swipeDelete('${o.id}')">删除</div>
-    <div class="order-card${isShotDone?' shot-done':''}" onclick="cardClick('${o.id}')" ontouchstart="swipeStart(event,'${o.id}')" ontouchmove="swipeMove(event,'${o.id}')" ontouchend="swipeEnd(event,'${o.id}')">${cardInner}</div>
+    <div class="order-card${isShotDone?' shot-done':''}" onclick="cardClick('${o.id}')" ontouchstart="swipeStart(event,'${o.id}');cardLongPress('${o.id}')" ontouchmove="swipeMove(event,'${o.id}');cancelLongPress()" ontouchend="swipeEnd(event,'${o.id}');cancelLongPress()" oncontextmenu="event.preventDefault();swipeDelete('${o.id}')">${cardInner}</div>
   </div>`;
 }
 
@@ -935,6 +935,19 @@ function cardClick(id){
     return;
   }
   openOrderModal(id);
+}
+// 长按删除（备选方案，确保所有手机都能删除）
+let longPressTimer=null;
+function cardLongPress(id){
+  if(longPressTimer)clearTimeout(longPressTimer);
+  longPressTimer=setTimeout(()=>{
+    if(confirm('确认删除此订单？')){
+      swipeDelete(id);
+    }
+  },600);
+}
+function cancelLongPress(){
+  if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
 }
 function swipeDelete(id){
   if(!confirm('确认删除此订单？'))return;
