@@ -65,7 +65,9 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .side-item{display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 6px;width:104px;border-radius:16px;cursor:pointer;transition:all .2s;color:var(--text-dim);margin-bottom:6px}
 .side-item:active{background:var(--card-hover)}
 .side-item.active{background:linear-gradient(135deg,var(--blue-light),rgba(118,176,65,.12));color:var(--blue-dark);box-shadow:0 2px 8px rgba(59,130,246,.1)}
-.side-icon{font-size:36px}
+.side-icon{width:48px;height:48px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.side-icon img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.side-item.active .side-icon{box-shadow:0 0 0 3px var(--buzz-green),0 2px 8px rgba(0,0,0,.15)}
 .side-label{font-size:14px;font-weight:600}
 .side-bottom{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:8px;padding-bottom:calc(8px + var(--safe-bottom))}
 .toy-badge{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow)}
@@ -282,24 +284,24 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 <div class="app-layout">
 <!-- 左侧导航 -->
 <nav class="side-nav">
-  <div class="side-logo">🤠</div>
+  <div class="side-logo"><img src="icons/pig.png" style="width:40px;height:40px;border-radius:50%"></div>
   <div class="side-item active" data-page="home" onclick="switchPage('home')">
-    <div class="side-icon">🏠</div><div class="side-label">首页</div>
+    <div class="side-icon"><img src="icons/rocket.png" alt="首页"></div><div class="side-label">首页</div>
   </div>
   <div class="side-item" data-page="orders" onclick="switchPage('orders')">
-    <div class="side-icon">📋</div><div class="side-label">订单</div>
+    <div class="side-icon"><img src="icons/buzz.png" alt="订单"></div><div class="side-label">订单</div>
   </div>
   <div class="side-item" data-page="pricing" onclick="switchPage('pricing')">
-    <div class="side-icon">🚀</div><div class="side-label">报价</div>
+    <div class="side-icon"><img src="icons/woody.png" alt="报价"></div><div class="side-label">报价</div>
   </div>
   <div class="side-item" data-page="todo" onclick="switchPage('todo')">
-    <div class="side-icon">👽</div><div class="side-label">待办</div>
+    <div class="side-icon"><img src="icons/alien.png" alt="待办"></div><div class="side-label">待办</div>
   </div>
   <div class="side-item" data-page="projects" onclick="switchPage('projects')">
-    <div class="side-icon">📁</div><div class="side-label">项目</div>
+    <div class="side-icon"><img src="icons/rex.png" alt="项目"></div><div class="side-label">项目</div>
   </div>
   <div class="side-item" data-page="ideas" onclick="switchPage('ideas')">
-    <div class="side-icon">💡</div><div class="side-label">选题</div>
+    <div class="side-icon"><img src="icons/lotso.png" alt="选题"></div><div class="side-label">选题</div>
   </div>
   <div class="side-bottom">
     <div class="toy-badge" onclick="showConfig()">⚙️</div>
