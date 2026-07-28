@@ -453,7 +453,7 @@ function setSyncStatus(state,text){
 // ========================
 // 数据层
 // ========================
-const CK='wb_cache_v8';
+const CK='wb_cache_v9';
 function loadCache(){try{return JSON.parse(localStorage.getItem(CK))||{orders:[],pricing:{},todos:[]}}catch{return{orders:[],pricing:{},todos:[]}}}
 function saveCache(){localStorage.setItem(CK,JSON.stringify(cache))}
 let cache=loadCache();
@@ -480,32 +480,29 @@ function saveDeletedIds(){localStorage.setItem(DK,JSON.stringify([...deletedOrde
 const deletedOrderIds=loadDeletedIds();
 async function syncAll(){
   if(!sb){setSyncStatus('offline','⚠ 未配置云端');return;}
-  if(isSyncing)return; // 防止重复同步
-  if(isDeleting)return; // 删除进行中，跳过同步
+  if(isSyncing)return;
+  if(isDeleting)return;
   isSyncing=true;
   setSyncStatus('syncing','同步中...');
   try{
-    // 1. 先拉取云端全部数据（以云端为准）
+    // 拉取云端全部数据，完全以云端为准
     const[{data:orders},{data:pricing},{data:todos}]=await Promise.all([
       sb.from('orders').select('*'),
       sb.from('pricing').select('*'),
       sb.from('todos').select('*')
     ]);
     
-    // 2. 合并：云端为主，本地补充（不丢本地数据）
+    // 完全覆盖本地，不保留本地独有数据（防止已删除数据复活）
     if(orders){
-      const cloudIds=new Set(orders.map(o=>o.id));
-      const localOnly=cache.orders.filter(o=>!cloudIds.has(o.id));
-      // 过滤掉已删除的订单（防止从云端拉回）
-      cache.orders=[...orders.map(mapOrderFromDB).filter(o=>!deletedOrderIds.has(o.id)),...localOnly.filter(o=>!deletedOrderIds.has(o.id))];
+      cache.orders=orders.map(mapOrderFromDB).filter(o=>!deletedOrderIds.has(o.id));
     }
     if(pricing){
-      pricing.forEach(p=>{cache.pricing[p.month]=mapPricingFromDB(p);});
+      const newPricing={};
+      pricing.forEach(p=>{newPricing[p.month]=mapPricingFromDB(p);});
+      cache.pricing=newPricing;
     }
     if(todos){
-      const cloudIds=new Set(todos.map(t=>t.id));
-      const localOnly=cache.todos.filter(t=>!cloudIds.has(t.id));
-      cache.todos=[...todos.map(t=>({id:t.id,text:t.text,done:t.done,created:t.created})),...localOnly];
+      cache.todos=todos.map(t=>({id:t.id,text:t.text,done:t.done,created:t.created}));
     }
     saveCache();
     setSyncStatus('','☁️ 云端已连接');
@@ -872,9 +869,11 @@ function deleteOrder(){
     isDeleting=false;
     toast('已删除');
     syncAll();
+    setTimeout(()=>{if(!isSyncing)syncAll()},2000);
   }).catch(()=>{
     isDeleting=false;
     toast('删除失败，请重试');
+    syncAll();
   });
 }
 
@@ -956,12 +955,16 @@ function swipeDelete(id){
   cache.orders=cache.orders.filter(o=>o.id!=id);
   saveCache();render();toast('正在删除...');
   deleteOrderDB(id).then(()=>{
-    isDeleting=false; // 解锁
+    isDeleting=false;
     toast('已删除');
+    // 立刻从云端拉取最新数据，完全覆盖本地
     syncAll();
+    // 2秒后再同步一次，确保其他端的删除也同步过来
+    setTimeout(()=>{if(!isSyncing)syncAll()},2000);
   }).catch(()=>{
     isDeleting=false;
     toast('删除失败，请重试');
+    syncAll(); // 即使失败也同步一次，用云端数据覆盖本地
   });
 }
 // 点击页面空白处收回swiped卡片
