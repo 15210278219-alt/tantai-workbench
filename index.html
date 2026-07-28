@@ -468,7 +468,11 @@ let editPicks={platform:'',format:'',priceType:'',status:'unpaid',transport:'tr_
 // ========================
 let isSyncing=false;
 let isDeleting=false; // 删除操作进行中，阻止syncAll
-const deletedOrderIds=new Set(); // 记住已删除的订单ID，防止syncAll从云端拉回
+// 已删除订单ID持久化存储，防止刷新页面后syncAll又上传/拉回
+const DK='wb_deleted_v1';
+function loadDeletedIds(){try{return new Set(JSON.parse(localStorage.getItem(DK))||[])}catch{return new Set()}}
+function saveDeletedIds(){localStorage.setItem(DK,JSON.stringify([...deletedOrderIds]))}
+const deletedOrderIds=loadDeletedIds();
 async function syncAll(){
   if(!sb){setSyncStatus('offline','⚠ 未配置云端');return;}
   if(isSyncing)return; // 防止重复同步
@@ -476,8 +480,8 @@ async function syncAll(){
   isSyncing=true;
   setSyncStatus('syncing','同步中...');
   try{
-    // 1. 先把本地数据上传到云端
-    for(const o of cache.orders){await pushOrder(o);}
+    // 1. 先把本地数据上传到云端（跳过已删除的）
+    for(const o of cache.orders){if(!deletedOrderIds.has(o.id))await pushOrder(o);}
     for(const m in cache.pricing){await pushPricing(m,cache.pricing[m]);}
     for(const t of cache.todos){await pushTodo(t);}
     
@@ -861,7 +865,7 @@ function deleteOrder(){
   const id=document.getElementById('edit-id').value;if(!id)return;
   if(!confirm('确认删除？'))return;
   isDeleting=true;
-  deletedOrderIds.add(id);
+  deletedOrderIds.add(id);saveDeletedIds();
   cache.orders=cache.orders.filter(o=>o.id!=id);
   saveCache();closeModal('order-modal');render();toast('正在删除...');
   deleteOrderDB(id).then(()=>{
@@ -934,8 +938,8 @@ function cardClick(id){
 }
 function swipeDelete(id){
   if(!confirm('确认删除此订单？'))return;
-  isDeleting=true; // 加锁，阻止syncAll干扰
-  deletedOrderIds.add(id);
+  isDeleting=true;
+  deletedOrderIds.add(id);saveDeletedIds();
   cache.orders=cache.orders.filter(o=>o.id!=id);
   saveCache();render();toast('正在删除...');
   deleteOrderDB(id).then(()=>{
