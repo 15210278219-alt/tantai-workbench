@@ -467,10 +467,12 @@ let editPicks={platform:'',format:'',priceType:'',status:'unpaid',transport:'tr_
 // 云端同步（合并模式，不丢数据）
 // ========================
 let isSyncing=false;
+let isDeleting=false; // 删除操作进行中，阻止syncAll
 const deletedOrderIds=new Set(); // 记住已删除的订单ID，防止syncAll从云端拉回
 async function syncAll(){
   if(!sb){setSyncStatus('offline','⚠ 未配置云端');return;}
   if(isSyncing)return; // 防止重复同步
+  if(isDeleting)return; // 删除进行中，跳过同步
   isSyncing=true;
   setSyncStatus('syncing','同步中...');
   try{
@@ -537,14 +539,14 @@ function subscribeRealtime(){
 
 // 修复：页面重新可见时自动同步（从后台切回前台、或从主屏幕打开时触发）
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible' && sb){
+  if(document.visibilityState==='visible' && sb && !isDeleting){
     syncAll();
   }
 });
 
 // 修复：定时保活同步 — 每30秒自动拉取一次云端数据，确保朋友的数据能及时显示
 setInterval(()=>{
-  if(sb && document.visibilityState==='visible' && !isSyncing){
+  if(sb && document.visibilityState==='visible' && !isSyncing && !isDeleting){
     syncAll();
   }
 },30000);
@@ -858,12 +860,17 @@ function saveOrder(){
 function deleteOrder(){
   const id=document.getElementById('edit-id').value;if(!id)return;
   if(!confirm('确认删除？'))return;
+  isDeleting=true;
   deletedOrderIds.add(id);
   cache.orders=cache.orders.filter(o=>o.id!=id);
   saveCache();closeModal('order-modal');render();toast('正在删除...');
   deleteOrderDB(id).then(()=>{
+    isDeleting=false;
     toast('已删除');
     syncAll();
+  }).catch(()=>{
+    isDeleting=false;
+    toast('删除失败，请重试');
   });
 }
 
@@ -927,12 +934,17 @@ function cardClick(id){
 }
 function swipeDelete(id){
   if(!confirm('确认删除此订单？'))return;
-  deletedOrderIds.add(id); // 记住已删除，防止syncAll拉回
+  isDeleting=true; // 加锁，阻止syncAll干扰
+  deletedOrderIds.add(id);
   cache.orders=cache.orders.filter(o=>o.id!=id);
   saveCache();render();toast('正在删除...');
   deleteOrderDB(id).then(()=>{
+    isDeleting=false; // 解锁
     toast('已删除');
     syncAll();
+  }).catch(()=>{
+    isDeleting=false;
+    toast('删除失败，请重试');
   });
 }
 // 点击页面空白处收回swiped卡片
