@@ -467,13 +467,14 @@ let editPicks={platform:'',format:'',priceType:'',status:'unpaid',transport:'tr_
 // 云端同步（合并模式，不丢数据）
 // ========================
 let isSyncing=false;
+const deletedOrderIds=new Set(); // 记住已删除的订单ID，防止syncAll从云端拉回
 async function syncAll(){
   if(!sb){setSyncStatus('offline','⚠ 未配置云端');return;}
   if(isSyncing)return; // 防止重复同步
   isSyncing=true;
   setSyncStatus('syncing','同步中...');
   try{
-    // 1. 先把本地数据上传到云端（upsert不会覆盖云端已有的同ID数据，会更新）
+    // 1. 先把本地数据上传到云端
     for(const o of cache.orders){await pushOrder(o);}
     for(const m in cache.pricing){await pushPricing(m,cache.pricing[m]);}
     for(const t of cache.todos){await pushTodo(t);}
@@ -488,9 +489,9 @@ async function syncAll(){
     // 3. 合并：云端为主，本地补充（不丢本地数据）
     if(orders){
       const cloudIds=new Set(orders.map(o=>o.id));
-      // 保留本地有但云端没有的（刚添加还没同步的）
       const localOnly=cache.orders.filter(o=>!cloudIds.has(o.id));
-      cache.orders=[...orders.map(mapOrderFromDB),...localOnly];
+      // 过滤掉已删除的订单（防止从云端拉回）
+      cache.orders=[...orders.map(mapOrderFromDB).filter(o=>!deletedOrderIds.has(o.id)),...localOnly.filter(o=>!deletedOrderIds.has(o.id))];
     }
     if(pricing){
       pricing.forEach(p=>{cache.pricing[p.month]=mapPricingFromDB(p);});
@@ -857,8 +858,13 @@ function saveOrder(){
 function deleteOrder(){
   const id=document.getElementById('edit-id').value;if(!id)return;
   if(!confirm('确认删除？'))return;
+  deletedOrderIds.add(id);
   cache.orders=cache.orders.filter(o=>o.id!=id);
-  saveCache();deleteOrderDB(id);closeModal('order-modal');render();toast('已删除');
+  saveCache();closeModal('order-modal');render();toast('正在删除...');
+  deleteOrderDB(id).then(()=>{
+    toast('已删除');
+    syncAll();
+  });
 }
 
 // ========================
@@ -921,8 +927,13 @@ function cardClick(id){
 }
 function swipeDelete(id){
   if(!confirm('确认删除此订单？'))return;
+  deletedOrderIds.add(id); // 记住已删除，防止syncAll拉回
   cache.orders=cache.orders.filter(o=>o.id!=id);
-  saveCache();deleteOrderDB(id);render();toast('已删除');
+  saveCache();render();toast('正在删除...');
+  deleteOrderDB(id).then(()=>{
+    toast('已删除');
+    syncAll();
+  });
 }
 // 点击页面空白处收回swiped卡片
 document.addEventListener('click',e=>{
