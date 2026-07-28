@@ -10,22 +10,71 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
-  --bg:#eef4fb;--card:#ffffff;--card-hover:#e8f0fa;--border:#d6e4f0;
-  --text:#1e3a5f;--text-dim:#7a9ab8;
-  --blue:#3b82f6;--blue-light:#dbeafe;--blue-dim:#dbeafe;
-  --blue-dark:#2563eb;
-  --purple:#8b5cf6;--purple-dim:#ede9fe;
-  --green:#10b981;--green-dim:#d1fae5;--green-dark:#059669;
-  --yellow:#f59e0b;--yellow-dim:#fef3c7;
-  --red:#ef4444;--red-dim:#fee2e2;--red-dark:#dc2626;
-  --radius:14px;--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
-  --shadow:0 1px 8px rgba(59,130,246,.06);
+  /* 玩具总动员主题色 */
+  --woody-blue:#87CEEB;
+  --woody-dark:#1E3A8A;
+  --woody-yellow:#F2C94C;
+  --buzz-green:#76B041;
+  --buzz-purple:#8B5CF6;
+  --lotso-pink:#E85A8C;
+  --alien-green:#9BC53D;
+  --rocket-red:#E94B3C;
+  --cloud-white:rgba(255,255,255,.92);
+  --andy-wall:#E8F4FD;
+  --space-dark:#0B1A3A;
+  
+  --bg:linear-gradient(180deg,#E8F4FD 0%,#F5FAFF 100%);
+  --card:rgba(255,255,255,.92);
+  --card-hover:rgba(255,255,255,.98);
+  --border:rgba(30,58,138,.12);
+  --text:#1E3A8A;
+  --text-dim:#5B7DB1;
+  --blue:#3B82F6;
+  --blue-light:#DBEAFE;
+  --blue-dim:#DBEAFE;
+  --blue-dark:#1E3A8A;
+  --purple:var(--buzz-purple);
+  --purple-dim:#EDE9FE;
+  --green:var(--buzz-green);
+  --green-dim:#D1FAE5;
+  --green-dark:#3F7D20;
+  --yellow:var(--woody-yellow);
+  --yellow-dim:#FEF3C7;
+  --red:var(--rocket-red);
+  --red-dim:#FEE2E2;
+  --red-dark:#B91C1C;
+  --pink:var(--lotso-pink);
+  --pink-dim:#FCE7F3;
+  --alien:var(--alien-green);
+  --radius:18px;--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --shadow:0 4px 20px rgba(30,58,138,.08);
+  --glow-buzz:0 0 20px rgba(118,176,65,.35);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:calc(90px + var(--safe-bottom));-webkit-font-smoothing:antialiased;padding-top:var(--safe-top)}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-serif;background:var(--andy-wall);background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:calc(90px + var(--safe-bottom));-webkit-font-smoothing:antialiased;padding-top:var(--safe-top)}
+
+/* 安迪房间云朵背景 */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='80' viewBox='0 0 120 80'%3E%3Cpath fill='rgba(255,255,255,0.45)' d='M25 45c-5 0-9-4-9-9s4-9 9-9c1 0 2 0 3 1 2-6 7-10 14-10 7 0 13 5 14 11 1 0 2 0 3 0 5 0 9 4 9 9s-4 9-9 9H25z'/%3E%3C/svg%3E");background-size:120px 80px;opacity:.6;z-index:-1;pointer-events:none}
+
+/* 应用布局 */
+.app-layout{display:flex;min-height:100vh}
+
+/* 左侧导航 */
+.side-nav{position:fixed;left:0;top:var(--safe-top);bottom:0;width:76px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:12px 0;z-index:60;box-shadow:4px 0 20px rgba(30,58,138,.06);backdrop-filter:blur(12px)}
+.side-logo{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--woody-yellow),var(--buzz-green));display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:16px;box-shadow:var(--shadow)}
+.side-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;width:64px;border-radius:12px;cursor:pointer;transition:all .2s;color:var(--text-dim);margin-bottom:4px}
+.side-item:active{background:var(--card-hover)}
+.side-item.active{background:linear-gradient(135deg,var(--blue-light),rgba(118,176,65,.12));color:var(--blue-dark);box-shadow:0 2px 8px rgba(59,130,246,.1)}
+.side-icon{font-size:22px}
+.side-label{font-size:10px;font-weight:600}
+.side-bottom{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:8px;padding-bottom:calc(8px + var(--safe-bottom))}
+.toy-badge{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow)}
+
+/* 主内容区 */
+.main-content{flex:1;margin-left:76px;min-height:100vh}
 
 /* 导航 */
-.top-nav{position:sticky;top:var(--safe-top);z-index:50;background:rgba(255,255,255,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;padding:0 16px}
+.top-nav{position:sticky;top:var(--safe-top);z-index:50;background:rgba(255,255,255,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;padding:0 16px;display:none}
 .nav-tab{flex:1;text-align:center;padding:14px 0 12px;font-size:15px;font-weight:600;color:var(--text-dim);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s}
 .nav-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
 
@@ -106,7 +155,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
 .archive-month.open .archive-body{display:block}
 
 /* FAB */
-.fab{position:fixed;bottom:calc(20px + var(--safe-bottom));right:16px;width:54px;height:54px;border-radius:50%;background:var(--blue);color:#fff;border:none;font-size:26px;box-shadow:0 4px 14px rgba(59,130,246,.35);cursor:pointer;z-index:100;display:flex;align-items:center;justify-content:center;transition:transform .12s}
+.fab{position:fixed;bottom:calc(20px + var(--safe-bottom));right:16px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--buzz-green),var(--woody-yellow));color:#fff;border:none;font-size:28px;box-shadow:0 4px 20px rgba(118,176,65,.4);cursor:pointer;z-index:100;display:flex;align-items:center;justify-content:center;transition:transform .12s}
 .fab:active{transform:scale(.9)}
 
 /* 弹窗 */
@@ -139,6 +188,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
 .picker-btn.active.p-has-tr{background:var(--yellow-dim);border-color:var(--yellow);color:#92400e}
 .picker-btn.active.p-no-touliu{background:var(--card-hover);border-color:var(--text-dim);color:var(--text-dim)}
 .picker-btn.active.p-has-touliu{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
+.picker-btn.active.p-no-deposit{background:var(--card-hover);border-color:var(--text-dim);color:var(--text-dim)}
+.picker-btn.active.p-has-deposit{background:var(--green-dim);border-color:var(--green);color:var(--green-dark)}
+.picker-btn.active.p-dur{background:var(--blue-dim);border-color:var(--blue);color:var(--blue-dark)}
 .btn-primary{width:100%;padding:13px;border-radius:12px;border:none;background:var(--blue);color:#fff;font-size:16px;font-weight:600;cursor:pointer;margin-top:6px}
 .btn-primary:active{opacity:.85}
 .btn-danger{width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--red-dark);font-size:14px;cursor:pointer;margin-top:6px}
@@ -227,18 +279,95 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
 </head>
 <body>
 
-<div class="top-nav">
-  <div class="nav-tab active" data-tab="orders" onclick="switchTab('orders')">📋 订单</div>
-  <div class="nav-tab" data-tab="pricing" onclick="switchTab('pricing')">💰 报价</div>
-</div>
+<div class="app-layout">
+<!-- 左侧导航 -->
+<nav class="side-nav">
+  <div class="side-logo">🤠</div>
+  <div class="side-item active" data-page="home" onclick="switchPage('home')">
+    <div class="side-icon">🏠</div><div class="side-label">首页</div>
+  </div>
+  <div class="side-item" data-page="orders" onclick="switchPage('orders')">
+    <div class="side-icon">📋</div><div class="side-label">订单</div>
+  </div>
+  <div class="side-item" data-page="pricing" onclick="switchPage('pricing')">
+    <div class="side-icon">🚀</div><div class="side-label">报价</div>
+  </div>
+  <div class="side-item" data-page="todo" onclick="switchPage('todo')">
+    <div class="side-icon">👽</div><div class="side-label">待办</div>
+  </div>
+  <div class="side-item" data-page="projects" onclick="switchPage('projects')">
+    <div class="side-icon">📁</div><div class="side-label">项目</div>
+  </div>
+  <div class="side-item" data-page="materials" onclick="switchPage('materials')">
+    <div class="side-icon">🎬</div><div class="side-label">素材</div>
+  </div>
+  <div class="side-item" data-page="ideas" onclick="switchPage('ideas')">
+    <div class="side-icon">💡</div><div class="side-label">选题</div>
+  </div>
+  <div class="side-bottom">
+    <div class="toy-badge" onclick="showConfig()">⚙️</div>
+    <div class="toy-badge" onclick="showUnpaid()">📋</div>
+  </div>
+</nav>
 
-<div class="sync-bar">
-  <div class="sync-dot offline" id="sync-dot"></div>
-  <span id="sync-text">初始化中...</span>
+<!-- 主内容区 -->
+<div class="main-content">
+
+<!-- 首页 -->
+<div id="page-home">
+  <div style="padding:20px 16px 8px">
+    <div style="font-size:28px;font-weight:800;color:var(--text)">Hi 荔夏 👋🤠</div>
+    <div id="home-greeting" style="font-size:14px;color:var(--text-dim);margin-top:4px">飞向宇宙，浩瀚无垠！🚀</div>
+  </div>
+  <div class="sync-bar">
+    <div class="sync-dot offline" id="sync-dot"></div>
+    <span id="sync-text">初始化中...</span>
+  </div>
+  <!-- 概览卡片 -->
+  <div class="stats" style="padding:8px 16px">
+    <div class="stat-card wide" style="background:linear-gradient(135deg,var(--blue-light),#EFF6FF);border-color:transparent" onclick="switchPage('todo')">
+      <div class="label">👽 今日待办</div>
+      <div class="value" id="home-todo-count" style="font-size:22px;color:var(--blue-dark)">0</div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#FEF3C7,#FFFBEA);border-color:transparent" onclick="switchPage('projects')">
+      <div class="label">⏳ 进行中项目</div>
+      <div class="value" id="home-project-count" style="color:#92400E">0</div>
+    </div>
+    <div class="stat-card green" style="background:linear-gradient(135deg,var(--green-dim),#ECFDF5);border-color:transparent" onclick="switchPage('orders')">
+      <div class="label">💰 本月收入</div>
+      <div class="value" id="home-income" style="color:var(--green-dark)">¥0</div>
+    </div>
+  </div>
+  <!-- 快捷操作 -->
+  <div style="padding:12px 16px 4px">
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px">🚀 快捷操作</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div onclick="openOrderModal()" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center;box-shadow:var(--shadow);cursor:pointer">
+        <div style="font-size:28px">➕</div><div style="font-size:13px;font-weight:600;color:var(--text);margin-top:4px">新增订单</div>
+      </div>
+      <div onclick="showUnpaid()" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center;box-shadow:var(--shadow);cursor:pointer">
+        <div style="font-size:28px">📋</div><div style="font-size:13px;font-weight:600;color:var(--text);margin-top:4px">未结款订单</div>
+      </div>
+      <div onclick="switchPage('ideas')" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center;box-shadow:var(--shadow);cursor:pointer">
+        <div style="font-size:28px">💡</div><div style="font-size:13px;font-weight:600;color:var(--text);margin-top:4px">选题灵感</div>
+      </div>
+      <div onclick="switchPage('pricing')" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center;box-shadow:var(--shadow);cursor:pointer">
+        <div style="font-size:28px">🚀</div><div style="font-size:13px;font-weight:600;color:var(--text);margin-top:4px">编辑报价</div>
+      </div>
+    </div>
+  </div>
+  <!-- 漂浮角色装饰 -->
+  <div style="padding:16px;text-align:center;font-size:11px;color:var(--text-dim)">
+    🤠 🚀 👽 🐻 🦖 — You've got a friend in me
+  </div>
 </div>
 
 <!-- 订单页 -->
-<div id="page-orders">
+<div id="page-orders" class="hidden">
+  <div class="sync-bar">
+    <div class="sync-dot" id="sync-dot-orders"></div>
+    <span id="sync-text-orders">同步中...</span>
+  </div>
   <div class="month-bar">
     <button class="menu-btn" onclick="togglePanel('month-panel')">☰</button>
     <div class="month-label" id="month-label"></div>
@@ -295,10 +424,61 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
   <div id="pricing-history" style="padding:0 16px"></div>
 </div>
 
+<!-- 待办页 -->
+<div id="page-todo" class="hidden">
+  <div style="padding:20px 16px 8px">
+    <div style="font-size:22px;font-weight:800;color:var(--text)">👽 今日待办</div>
+  </div>
+  <div style="padding:0 16px" id="todo-page-list"></div>
+  <div style="padding:12px 16px">
+    <div style="display:flex;gap:8px">
+      <input type="text" id="todo-page-input" placeholder="添加新待办..." style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text);font-size:16px" onkeypress="if(event.key==='Enter')addTodoFromPage()">
+      <button onclick="addTodoFromPage()" style="padding:0 18px;border:none;border-radius:12px;background:var(--buzz-green);color:#fff;font-size:16px;font-weight:600;cursor:pointer">添加</button>
+    </div>
+  </div>
+</div>
+
+<!-- 项目页 -->
+<div id="page-projects" class="hidden">
+  <div style="padding:20px 16px 8px">
+    <div style="font-size:22px;font-weight:800;color:var(--text)">📁 进行中项目</div>
+    <div style="font-size:13px;color:var(--text-dim);margin-top:4px">未拍摄完成的订单</div>
+  </div>
+  <div class="list" id="project-list"></div>
+</div>
+
+<!-- 素材页 -->
+<div id="page-materials" class="hidden">
+  <div style="padding:20px 16px 8px">
+    <div style="font-size:22px;font-weight:800;color:var(--text)">🎬 素材库</div>
+    <div style="font-size:13px;color:var(--text-dim);margin-top:4px">管理你的探店素材</div>
+  </div>
+  <div style="padding:0 16px">
+    <div class="empty-state"><div class="icon">🎬</div><div>素材库即将上线<br>🚀 飞向宇宙，浩瀚无垠！</div></div>
+  </div>
+</div>
+
+<!-- 选题页 -->
+<div id="page-ideas" class="hidden">
+  <div style="padding:20px 16px 8px">
+    <div style="font-size:22px;font-weight:800;color:var(--text)">💡 选题灵感</div>
+  </div>
+  <div style="padding:0 16px">
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input type="text" id="idea-input" placeholder="记录一个选题灵感..." style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text);font-size:16px" onkeypress="if(event.key==='Enter')addIdea()">
+      <button onclick="addIdea()" style="padding:0 18px;border:none;border-radius:12px;background:var(--woody-yellow);color:#92400E;font-size:16px;font-weight:600;cursor:pointer">添加</button>
+    </div>
+  </div>
+  <div class="list" id="idea-list"></div>
+</div>
+
 <button class="fab" onclick="openOrderModal()">+</button>
 
 <!-- 遮罩 -->
 <div id="panel-overlay" style="display:none;position:fixed;inset:0;background:rgba(30,58,95,.2);backdrop-filter:blur(2px);z-index:140" onclick="closeAllPanels()"></div>
+
+</div><!-- /main-content -->
+</div><!-- /app-layout -->
 
 <!-- 月份面板 -->
 <div class="panel" id="month-panel">
@@ -358,6 +538,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
     <div class="form-group"><label class="form-label">店名 *</label><input type="text" class="form-input" id="in-store" placeholder="例如：张记火锅"></div>
     <div class="form-group"><label class="form-label">合作平台 *</label><div class="picker-row"><div class="picker-btn p-xhs" data-val="xhs" onclick="pick('platform','xhs')">小红书</div><div class="picker-btn p-dy" data-val="dy" onclick="pick('platform','dy')">抖音</div><div class="picker-btn p-both" data-val="both" onclick="pick('platform','both')">双平台</div></div></div>
     <div class="form-group"><label class="form-label">合作形式 *</label><div class="picker-row"><div class="picker-btn p-image" data-val="image" onclick="pick('format','image')">🖼️ 图文</div><div class="picker-btn p-single-video" data-val="single_video" onclick="pick('format','single_video')">🎬 单店视频</div><div class="picker-btn p-guide-video" data-val="guide_video" onclick="pick('format','guide_video')">📋 攻略视频</div></div></div>
+    <div class="form-group hidden" id="field-duration"><label class="form-label">⏱️ 视频时长</label><div class="picker-row" style="flex-wrap:wrap"><div class="picker-btn p-dur" data-val="dur_1min" onclick="pick('duration','dur_1min')">1分钟</div><div class="picker-btn p-dur" data-val="dur_1.5min" onclick="pick('duration','dur_1.5min')">1分30秒</div><div class="picker-btn p-dur" data-val="dur_2min" onclick="pick('duration','dur_2min')">2分钟</div><div class="picker-btn p-dur" data-val="dur_2.5min" onclick="pick('duration','dur_2.5min')">2分30秒</div><div class="picker-btn p-dur" data-val="dur_3min" onclick="pick('duration','dur_3min')">3分钟</div><div class="picker-btn p-dur" data-val="dur_3.5min" onclick="pick('duration','dur_3.5min')">3分30秒</div><div class="picker-btn p-dur" data-val="dur_4min" onclick="pick('duration','dur_4min')">4分钟</div></div></div>
     <div class="form-group"><label class="form-label">价格档位</label><div class="picker-row"><div class="picker-btn p-surface" data-val="surface" onclick="pick('priceType','surface')">🌊 水上</div><div class="picker-btn p-underwater" data-val="underwater" onclick="pick('priceType','underwater')">🤿 水下</div></div></div>
     <div class="form-group"><label class="form-label">接单日期 *</label><input type="date" class="form-input" id="in-date"></div>
     <div class="form-group"><label class="form-label">拍摄时间</label><input type="datetime-local" class="form-input" id="in-shoot-time"></div>
@@ -368,6 +549,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
     <div class="form-group hidden" id="field-transport"><label class="form-label">车马费金额（元）</label><input type="number" class="form-input" id="in-transport" placeholder="0" min="0" step="50"></div>
     <div class="form-group"><label class="form-label">投流</label><div class="picker-row"><div class="picker-btn p-no-touliu" data-val="tl_no" onclick="pick('touliu','tl_no')">无</div><div class="picker-btn p-has-touliu" data-val="tl_yes" onclick="pick('touliu','tl_yes')">有投流</div></div></div>
     <div class="form-group hidden" id="field-touliu"><label class="form-label">投流金额（元）</label><input type="number" class="form-input" id="in-touliu" placeholder="0" min="0" step="50"></div>
+    <div class="form-group"><label class="form-label">定金</label><div class="picker-row"><div class="picker-btn p-no-deposit" data-val="dp_no" onclick="pick('deposit','dp_no')">无</div><div class="picker-btn p-has-deposit" data-val="dp_yes" onclick="pick('deposit','dp_yes')">已付定金</div></div></div>
+    <div class="form-group hidden" id="field-deposit"><label class="form-label">定金金额（元）</label><input type="number" class="form-input" id="in-deposit" placeholder="0" min="0" step="50"></div>
     <div class="form-group"><label class="form-label">支付状态</label><div class="picker-row"><div class="picker-btn p-unpaid" data-val="unpaid" onclick="pick('status','unpaid')">未付款</div><div class="picker-btn p-paid" data-val="paid" onclick="pick('status','paid')">已付款</div></div></div>
     <div class="form-group hidden" id="field-pay-date"><label class="form-label">实际支付日期</label><input type="date" class="form-input" id="in-pay-date"></div>
     <div class="form-group"><label class="form-label">约定支付日期</label><input type="date" class="form-input" id="in-due-date"></div>
@@ -453,7 +636,7 @@ function setSyncStatus(state,text){
 // ========================
 // 数据层
 // ========================
-const CK='wb_cache_v9';
+const CK='wb_cache_v10';
 function loadCache(){try{return JSON.parse(localStorage.getItem(CK))||{orders:[],pricing:{},todos:[]}}catch{return{orders:[],pricing:{},todos:[]}}}
 function saveCache(){localStorage.setItem(CK,JSON.stringify(cache))}
 let cache=loadCache();
@@ -461,7 +644,7 @@ let cache=loadCache();
 let currentMonth=new Date().toISOString().substring(0,7);
 let currentFilter='all';
 let panelYear=new Date().getFullYear();
-let editPicks={platform:'',format:'',priceType:'',status:'unpaid',transport:'tr_no',touliu:'tl_no'};
+let editPicks={platform:'',format:'',priceType:'',status:'unpaid',transport:'tr_no',touliu:'tl_no',deposit:'dp_no',duration:''};
 
 // ========================
 // 云端同步（合并模式，不丢数据）
@@ -515,10 +698,10 @@ async function syncAll(){
 }
 
 function mapOrderToDB(o){
-  return{store:o.store,platform:o.platform,format:o.format,price_type:o.priceType,amount:o.amount,has_transport:o.hasTransport,transport_fee:o.transportFee,has_touliu:o.hasTouliu||'no',touliu_fee:o.touliuFee||0,status:o.status,order_date:o.orderDate,shoot_time:o.shootTime||null,publish_due:o.publishDue||null,publish_date:o.publishDate||null,due_date:o.dueDate,pay_date:o.payDate,note:o.note,room_id:ROOM};
+  return{store:o.store,platform:o.platform,format:o.format,price_type:o.priceType,amount:o.amount,has_transport:o.hasTransport,transport_fee:o.transportFee,has_touliu:o.hasTouliu||'no',touliu_fee:o.touliuFee||0,has_deposit:o.hasDeposit||'no',deposit_fee:o.depositFee||0,video_duration:o.videoDuration||null,status:o.status,order_date:o.orderDate,shoot_time:o.shootTime||null,publish_due:o.publishDue||null,publish_date:o.publishDate||null,due_date:o.dueDate,pay_date:o.payDate,note:o.note,room_id:ROOM};
 }
 function mapOrderFromDB(r){
-  return{id:r.id,store:r.store,platform:r.platform,format:r.format,priceType:r.price_type,amount:parseFloat(r.amount||0),hasTransport:r.has_transport,transportFee:parseFloat(r.transport_fee||0),hasTouliu:r.has_touliu||'no',touliuFee:parseFloat(r.touliu_fee||0),status:r.status,orderDate:r.order_date,shootTime:r.shoot_time||'',publishDue:r.publish_due||'',publishDate:r.publish_date||'',dueDate:r.due_date,payDate:r.pay_date,note:r.note};
+  return{id:r.id,store:r.store,platform:r.platform,format:r.format,priceType:r.price_type,amount:parseFloat(r.amount||0),hasTransport:r.has_transport,transportFee:parseFloat(r.transport_fee||0),hasTouliu:r.has_touliu||'no',touliuFee:parseFloat(r.touliu_fee||0),hasDeposit:r.has_deposit||'no',depositFee:parseFloat(r.deposit_fee||0),videoDuration:r.video_duration||'',status:r.status,orderDate:r.order_date,shootTime:r.shoot_time||'',publishDue:r.publish_due||'',publishDate:r.publish_date||'',dueDate:r.due_date,payDate:r.pay_date,note:r.note};
 }
 function mapPricingFromDB(r){
   return{imgSurface:parseFloat(r.img_surface||0),imgUnderwater:parseFloat(r.img_underwater||0),vidSurface:parseFloat(r.vid_surface||0),vidUnderwater:parseFloat(r.vid_underwater||0),note:r.note,touliuAmount:parseFloat(r.touliu_amount||0),dyFollowers:parseInt(r.dy_followers||0),xhsFollowers:parseInt(r.xhs_followers||0),dyHot:r.dy_hot||false,xhsHot:r.xhs_hot||false};
@@ -648,9 +831,125 @@ document.addEventListener('click',e=>{
 // Tab
 // ========================
 function switchTab(t){
-  document.querySelectorAll('.nav-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
-  document.getElementById('page-orders').classList.toggle('hidden',t!=='orders');
-  document.getElementById('page-pricing').classList.toggle('hidden',t!=='pricing');
+  switchPage(t);
+}
+
+// 页面切换
+const pages=['home','orders','pricing','todo','projects','materials','ideas'];
+let currentPage='home';
+function switchPage(p){
+  currentPage=p;
+  // 导航高亮
+  document.querySelectorAll('.side-item').forEach(x=>x.classList.toggle('active',x.dataset.page===p));
+  // 页面显示
+  pages.forEach(pg=>{
+    const el=document.getElementById('page-'+pg);
+    if(el)el.classList.toggle('hidden',pg!==p);
+  });
+  // 页面专属渲染
+  if(p==='home')renderHome();
+  if(p==='orders')render();
+  if(p==='pricing')renderPricing();
+  if(p==='todo')renderTodoPage();
+  if(p==='projects')renderProjects();
+  if(p==='ideas')renderIdeas();
+}
+
+// 首页渲染
+function renderHome(){
+  const pending=cache.todos.filter(t=>!t.done).length;
+  document.getElementById('home-todo-count').textContent=pending;
+  // 进行中项目 = 未拍摄完成的订单
+  const now=new Date();
+  const projects=cache.orders.filter(o=>{
+    if(!o.shootTime)return false;
+    return new Date(o.shootTime)>now;
+  });
+  document.getElementById('home-project-count').textContent=projects.length;
+  // 本月收入
+  const mo=cache.orders.filter(o=>o.orderDate&&o.orderDate.startsWith(currentMonth));
+  const income=mo.reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  document.getElementById('home-income').textContent='¥'+income.toLocaleString();
+  // 随机问候
+  const greetings=['飞向宇宙，浩瀚无垠！🚀','你是我最好的朋友！🤠','你有个朋友在我这里🎵','无限的边界，就在前方！👽','今天也要加油探店哦！🐻'];
+  document.getElementById('home-greeting').textContent=greetings[Math.floor(Math.random()*greetings.length)];
+}
+
+// 待办页面渲染
+function renderTodoPage(){
+  const list=document.getElementById('todo-page-list');
+  if(cache.todos.length===0){
+    list.innerHTML='<div class="empty-state"><div class="icon">👽</div><div>暂无待办事项</div></div>';return;
+  }
+  const pending=cache.todos.filter(t=>!t.done);
+  const done=cache.todos.filter(t=>t.done);
+  let html='';
+  if(pending.length>0){
+    html+='<div style="font-size:13px;font-weight:600;color:var(--text-dim);padding:8px 0 6px">待完成 · '+pending.length+'</div>';
+    html+=pending.map(t=>todoPageItemHtml(t)).join('');
+  }
+  if(done.length>0){
+    html+='<div style="font-size:13px;font-weight:600;color:var(--text-dim);padding:12px 0 6px">已完成 · '+done.length+'</div>';
+    html+=done.map(t=>todoPageItemHtml(t)).join('');
+  }
+  list.innerHTML=html;
+}
+function todoPageItemHtml(t){
+  return `<div style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow)">
+    <div onclick="toggleTodo('${t.id}')" style="width:24px;height:24px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;${t.done?'background:var(--buzz-green);border-color:var(--buzz-green)':''}">${t.done?'<span style="color:#fff;font-size:14px;font-weight:700">✓</span>':''}</div>
+    <span style="flex:1;font-size:15px;${t.done?'text-decoration:line-through;color:var(--text-dim)':''}">${t.text}</span>
+    <span onclick="removeTodo('${t.id}')" style="color:var(--text-dim);cursor:pointer;font-size:18px;padding:4px">✕</span>
+  </div>`;
+}
+function addTodoFromPage(){
+  const input=document.getElementById('todo-page-input');
+  const text=input.value.trim();
+  if(!text)return;
+  const t={id:'t'+Date.now(),text,done:false,created:new Date().toISOString().split('T')[0]};
+  cache.todos.push(t);saveCache();pushTodo(t);
+  input.value='';renderTodoPage();renderTodos();
+}
+
+// 项目页面渲染
+function renderProjects(){
+  const list=document.getElementById('project-list');
+  const now=new Date();
+  const projects=cache.orders.filter(o=>{
+    if(!o.shootTime)return false;
+    return new Date(o.shootTime)>now;
+  }).sort((a,b)=>new Date(a.shootTime)-new Date(b.shootTime));
+  if(projects.length===0){
+    list.innerHTML='<div class="empty-state"><div class="icon">📁</div><div>暂无进行中项目<br>所有拍摄都完成啦！🎉</div></div>';return;
+  }
+  const today=new Date().toISOString().split('T')[0];
+  list.innerHTML=projects.map(o=>orderCardHtml(o,today)).join('');
+}
+
+// 选题页面渲染
+function renderIdeas(){
+  if(!cache.ideas)cache.ideas=[];
+  const list=document.getElementById('idea-list');
+  if(cache.ideas.length===0){
+    list.innerHTML='<div class="empty-state"><div class="icon">💡</div><div>暂无选题灵感<br>想到什么就记下来吧！</div></div>';return;
+  }
+  list.innerHTML=cache.ideas.map((idea,i)=>{
+    return `<div style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow)">
+      <span style="font-size:20px">💡</span>
+      <span style="flex:1;font-size:15px;color:var(--text)">${idea.text}</span>
+      <span onclick="removeIdea(${i})" style="color:var(--text-dim);cursor:pointer;font-size:18px;padding:4px">✕</span>
+    </div>`;
+  }).join('');
+}
+function addIdea(){
+  if(!cache.ideas)cache.ideas=[];
+  const input=document.getElementById('idea-input');
+  const text=input.value.trim();
+  if(!text)return;
+  cache.ideas.push({text,created:new Date().toISOString().split('T')[0]});
+  saveCache();input.value='';renderIdeas();
+}
+function removeIdea(i){
+  cache.ideas.splice(i,1);saveCache();renderIdeas();
 }
 
 // ========================
@@ -661,7 +960,9 @@ function render(){
   document.getElementById('month-label').textContent=`${y}年${m}月`;
   const mo=cache.orders.filter(o=>o.orderDate&&o.orderDate.startsWith(currentMonth));
   const paid=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
-  const unpaid=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  const unpaidFull=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  const depositTotal=mo.filter(o=>o.status==='unpaid'&&o.hasDeposit==='yes').reduce((s,o)=>s+(o.depositFee||0),0);
+  const unpaid=unpaidFull-depositTotal;
   document.getElementById('stat-total').textContent='¥'+(paid+unpaid).toLocaleString();
   document.getElementById('stat-paid').textContent='¥'+paid.toLocaleString();
   document.getElementById('stat-unpaid').textContent='¥'+unpaid.toLocaleString();
@@ -716,7 +1017,7 @@ function orderCardHtml(o,today){
   meta+='</div>';
   const fmtMap={image:['图文','image'],single_video:['单店视频','single_video'],guide_video:['攻略视频','guide_video'],video:['视频','video']};
   const fmt=o.format?fmtMap[o.format]||['视频','video']:null;
-  const tags=`<span class="tag ${pm[1]}">${pm[0]}</span>${fmt?`<span class="tag ${fmt[1]}">${fmt[0]}</span>`:''}${o.priceType?`<span class="tag ${o.priceType}">${o.priceType==='surface'?'水上':'水下'}</span>`:''}${o.hasTransport==='yes'?`<span class="tag transport">🚗+${o.transportFee}</span>`:''}${o.hasTouliu==='yes'?`<span class="tag touliu">🚀+${o.touliuFee||0}</span>`:''}`;
+  const tags=`<span class="tag ${pm[1]}">${pm[0]}</span>${fmt?`<span class="tag ${fmt[1]}">${fmt[0]}</span>`:''}${o.videoDuration?`<span class="tag" style="background:var(--blue-dim);color:var(--blue-dark)">⏱️${{dur_1min:'1min',dur_1_5min:'1.5min',dur_2min:'2min',dur_2_5min:'2.5min',dur_3min:'3min',dur_3_5min:'3.5min',dur_4min:'4min'}[o.videoDuration]||o.videoDuration}</span>`:''}${o.priceType?`<span class="tag ${o.priceType}">${o.priceType==='surface'?'水上':'水下'}</span>`:''}${o.hasTransport==='yes'?`<span class="tag transport">🚗+${o.transportFee}</span>`:''}${o.hasTouliu==='yes'?`<span class="tag touliu">🚀+${o.touliuFee||0}</span>`:''}${o.hasDeposit==='yes'?`<span class="tag" style="background:var(--green-dim);color:var(--green-dark)">💰定金${o.depositFee||0}</span>`:''}`;
   const note=o.note?`<div class="order-note">📝 ${o.note}</div>`:'';
   const cardInner=`<div class="order-header"><div><div class="order-store">${o.store}</div>${tags}</div>
     <div class="order-amount">${(o.amount||0).toLocaleString()}<span class="unit">元</span></div></div>
@@ -801,7 +1102,8 @@ function openOrderModal(id){
     document.getElementById('in-note').value=o.note||'';
     document.getElementById('in-transport').value=o.transportFee||'';
     document.getElementById('in-touliu').value=o.touliuFee||'';
-    pick('platform',o.platform||'');pick('format',o.format||'');pick('priceType',o.priceType||'');pick('status',o.status||'unpaid');pick('transport',o.hasTransport==='yes'?'tr_yes':'tr_no');pick('touliu',o.hasTouliu==='yes'?'tl_yes':'tl_no');
+    document.getElementById('in-deposit').value=o.depositFee||'';
+    pick('platform',o.platform||'');pick('format',o.format||'');pick('priceType',o.priceType||'');pick('status',o.status||'unpaid');pick('transport',o.hasTransport==='yes'?'tr_yes':'tr_no');pick('touliu',o.hasTouliu==='yes'?'tl_yes':'tl_no');pick('deposit',o.hasDeposit==='yes'?'dp_yes':'dp_no');pick('duration',o.videoDuration||'');
   }else{
     title.textContent='新增订单';del.classList.add('hidden');
     document.getElementById('edit-id').value='';
@@ -816,7 +1118,8 @@ function openOrderModal(id){
     document.getElementById('in-note').value='';
     document.getElementById('in-transport').value='';
     document.getElementById('in-touliu').value='';
-    pick('platform','');pick('format','');pick('priceType','');pick('status','unpaid');pick('transport','tr_no');pick('touliu','tl_no');
+    document.getElementById('in-deposit').value='';
+    pick('platform','');pick('format','');pick('priceType','');pick('status','unpaid');pick('transport','tr_no');pick('touliu','tl_no');pick('deposit','dp_no');pick('duration','');
   }
   document.getElementById('order-modal').classList.add('show');
 }
@@ -824,7 +1127,7 @@ function closeModal(id){document.getElementById(id).classList.remove('show');}
 document.getElementById('order-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('order-modal');});
 document.getElementById('pricing-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('pricing-modal');});
 
-const pickMap={platform:['xhs','dy','both'],format:['image','single_video','guide_video'],priceType:['surface','underwater'],status:['paid','unpaid'],transport:['tr_no','tr_yes'],touliu:['tl_no','tl_yes']};
+const pickMap={platform:['xhs','dy','both'],format:['image','single_video','guide_video'],priceType:['surface','underwater'],status:['paid','unpaid'],transport:['tr_no','tr_yes'],touliu:['tl_no','tl_yes'],deposit:['dp_no','dp_yes'],duration:['dur_1min','dur_1.5min','dur_2min','dur_2.5min','dur_3min','dur_3.5min','dur_4min']};
 function pick(type,val){
   editPicks[type]=val;
   document.querySelectorAll('.picker-btn').forEach(b=>{
@@ -833,6 +1136,8 @@ function pick(type,val){
   if(type==='status')document.getElementById('field-pay-date').classList.toggle('hidden',val!=='paid');
   if(type==='transport')document.getElementById('field-transport').classList.toggle('hidden',val!=='tr_yes');
   if(type==='touliu')document.getElementById('field-touliu').classList.toggle('hidden',val!=='tl_yes');
+  if(type==='deposit')document.getElementById('field-deposit').classList.toggle('hidden',val!=='dp_yes');
+  if(type==='format')document.getElementById('field-duration').classList.toggle('hidden',val!=='single_video'&&val!=='guide_video'&&val!=='video');
 }
 
 function saveOrder(){
@@ -848,6 +1153,8 @@ function saveOrder(){
     amount,status:editPicks.status,hasTransport:editPicks.transport==='tr_yes'?'yes':'no',
     transportFee:editPicks.transport==='tr_yes'?(parseFloat(document.getElementById('in-transport').value)||0):0,
     hasTouliu:editPicks.touliu==='tl_yes'?'yes':'no',touliuFee:editPicks.touliu==='tl_yes'?(parseFloat(document.getElementById('in-touliu').value)||0):0,
+    hasDeposit:editPicks.deposit==='dp_yes'?'yes':'no',depositFee:editPicks.deposit==='dp_yes'?(parseFloat(document.getElementById('in-deposit').value)||0):0,
+    videoDuration:editPicks.duration||'',
     orderDate:document.getElementById('in-date').value,shootTime:document.getElementById('in-shoot-time').value,publishDue:document.getElementById('in-publish-due').value,publishDate:document.getElementById('in-publish-date').value,dueDate:document.getElementById('in-due-date').value,
     payDate:editPicks.status==='paid'?document.getElementById('in-pay-date').value:'',
     note:document.getElementById('in-note').value.trim()
@@ -982,7 +1289,9 @@ function renderPricing(){
   document.getElementById('pricing-month-label').textContent=`${y}年${m}月报价`;
   const mo=cache.orders.filter(o=>o.orderDate&&o.orderDate.startsWith(currentMonth));
   const paid=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
-  const unpaid=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  const unpaidFull=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  const depositTotal=mo.filter(o=>o.status==='unpaid'&&o.hasDeposit==='yes').reduce((s,o)=>s+(o.depositFee||0),0);
+  const unpaid=unpaidFull-depositTotal;
   document.getElementById('pstat-total').textContent='¥'+(paid+unpaid).toLocaleString();
   document.getElementById('pstat-paid').textContent='¥'+paid.toLocaleString();
   document.getElementById('pstat-unpaid').textContent='¥'+unpaid.toLocaleString();
@@ -1201,7 +1510,7 @@ async function init(){
   const rd=document.getElementById('room-display');
   if(rd)rd.textContent='当前房间: '+ROOM+'（两人必须相同才能共享）';
   // 1. 先显示本地数据，避免页面卡住
-  render();renderPricing();renderTodos();
+  switchPage('home');
   // 2. 异步连接云端并同步
   if(initSupabase()){
     subscribeRealtime();
