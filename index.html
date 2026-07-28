@@ -59,8 +59,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
 
 /* 列表 */
 .list{padding:4px 16px}
-.order-card{background:var(--card);border-radius:var(--radius);padding:13px;margin-bottom:8px;border:1px solid var(--border);cursor:pointer;box-shadow:var(--shadow);transition:background .15s}
+.order-item-wrap{position:relative;overflow:hidden;margin-bottom:8px;border-radius:var(--radius)}
+.order-card{background:var(--card);border-radius:var(--radius);padding:13px;margin-bottom:0;border:1px solid var(--border);cursor:pointer;box-shadow:var(--shadow);transition:transform .25s ease,background .15s;position:relative;z-index:1}
 .order-card:active{background:var(--card-hover)}
+.order-item-wrap.swiped .order-card{transform:translateX(-76px)}
+.order-delete-btn{position:absolute;right:0;top:0;bottom:0;width:76px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;z-index:0;border:none;border-radius:0 var(--radius) var(--radius) 0;cursor:pointer}
 .order-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
 .order-store{font-size:16px;font-weight:600;color:var(--text);margin-bottom:3px}
 .tag{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;margin-right:3px}
@@ -70,8 +73,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
 .tag.surface{background:var(--blue-dim);color:var(--blue-dark)}
 .tag.underwater{background:var(--purple-dim);color:var(--purple)}
 .tag.image{background:var(--green-dim);color:var(--green-dark)}
-.tag.video{background:var(--yellow-dim);color:#92400e}
+.tag.video,.tag.single_video{background:var(--yellow-dim);color:#92400e}
+.tag.guide_video{background:var(--blue-dim);color:var(--blue-dark)}
 .tag.transport{background:var(--yellow-dim);color:#92400e}
+.tag.touliu{background:var(--purple-dim);color:var(--purple)}
 .order-amount{font-size:19px;font-weight:700;color:var(--text)}
 .order-amount .unit{font-size:12px;font-weight:400;color:var(--text-dim)}
 .order-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--text-dim);margin-bottom:8px}
@@ -126,14 +131,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
 .picker-btn.active.p-surface{background:var(--blue-dim);border-color:var(--blue);color:var(--blue-dark)}
 .picker-btn.active.p-underwater{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
 .picker-btn.active.p-image{background:var(--green-dim);border-color:var(--green);color:var(--green-dark)}
-.picker-btn.active.p-video{background:var(--yellow-dim);border-color:var(--yellow);color:#92400e}
+.picker-btn.active.p-video,.picker-btn.active.p-single-video{background:var(--yellow-dim);border-color:var(--yellow);color:#92400e}
+.picker-btn.active.p-guide-video{background:var(--blue-dim);border-color:var(--blue);color:var(--blue-dark)}
 .picker-btn.active.p-paid{background:var(--green-dim);border-color:var(--green);color:var(--green-dark)}
 .picker-btn.active.p-unpaid{background:var(--red-dim);border-color:var(--red);color:var(--red-dark)}
 .picker-btn.active.p-no-tr{background:var(--card-hover);border-color:var(--text-dim);color:var(--text-dim)}
 .picker-btn.active.p-has-tr{background:var(--yellow-dim);border-color:var(--yellow);color:#92400e}
+.picker-btn.active.p-no-touliu{background:var(--card-hover);border-color:var(--text-dim);color:var(--text-dim)}
+.picker-btn.active.p-has-touliu{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
 .btn-primary{width:100%;padding:13px;border-radius:12px;border:none;background:var(--blue);color:#fff;font-size:16px;font-weight:600;cursor:pointer;margin-top:6px}
 .btn-primary:active{opacity:.85}
 .btn-danger{width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--red-dark);font-size:14px;cursor:pointer;margin-top:6px}
+
+/* 圆形勾选框 */
+.check-row{display:flex;align-items:center;gap:8px;padding:8px 0}
+.check-circle{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;flex-shrink:0;background:var(--card)}
+.check-circle.checked{background:var(--green);border-color:var(--green)}
+.check-circle.checked::after{content:'✓';color:#fff;font-size:15px;font-weight:700}
+.check-label{font-size:14px;color:var(--text);font-weight:500}
 
 /* 面板 - 左侧抽屉 */
 .panel{display:none;position:fixed;top:var(--safe-top);left:0;bottom:0;width:280px;max-width:80vw;background:var(--card);border-right:1px solid var(--border);box-shadow:4px 0 24px rgba(59,130,246,.1);z-index:150;padding:16px 14px;overflow-y:auto;animation:slideInLeft .2s ease}
@@ -242,7 +257,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
     <div class="chip" data-filter="dy">抖音</div>
     <div class="chip" data-filter="both">双平台</div>
     <div class="chip" data-filter="image">图文</div>
-    <div class="chip" data-filter="video">视频</div>
+    <div class="chip" data-filter="single_video">单店视频</div>
+    <div class="chip" data-filter="guide_video">攻略视频</div>
   </div>
   <div class="list" id="order-list"></div>
   <div class="archive-section" id="archive-section"></div>
@@ -274,6 +290,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
   <div style="margin:0 16px 8px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)">
     <div class="price-grid" id="pricing-display"></div>
   </div>
+  <div id="pricing-extra" style="margin:0 16px 8px;padding:12px 14px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);min-height:0"></div>
   <div style="font-size:14px;font-weight:600;color:var(--text-dim);padding:8px 16px 6px">历史报价</div>
   <div id="pricing-history" style="padding:0 16px"></div>
 </div>
@@ -340,7 +357,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
     <input type="hidden" id="edit-id">
     <div class="form-group"><label class="form-label">店名 *</label><input type="text" class="form-input" id="in-store" placeholder="例如：张记火锅"></div>
     <div class="form-group"><label class="form-label">合作平台 *</label><div class="picker-row"><div class="picker-btn p-xhs" data-val="xhs" onclick="pick('platform','xhs')">小红书</div><div class="picker-btn p-dy" data-val="dy" onclick="pick('platform','dy')">抖音</div><div class="picker-btn p-both" data-val="both" onclick="pick('platform','both')">双平台</div></div></div>
-    <div class="form-group"><label class="form-label">合作形式 *</label><div class="picker-row"><div class="picker-btn p-image" data-val="image" onclick="pick('format','image')">🖼️ 图文</div><div class="picker-btn p-video" data-val="video" onclick="pick('format','video')">🎬 视频</div></div></div>
+    <div class="form-group"><label class="form-label">合作形式 *</label><div class="picker-row"><div class="picker-btn p-image" data-val="image" onclick="pick('format','image')">🖼️ 图文</div><div class="picker-btn p-single-video" data-val="single_video" onclick="pick('format','single_video')">🎬 单店视频</div><div class="picker-btn p-guide-video" data-val="guide_video" onclick="pick('format','guide_video')">📋 攻略视频</div></div></div>
     <div class="form-group"><label class="form-label">价格档位</label><div class="picker-row"><div class="picker-btn p-surface" data-val="surface" onclick="pick('priceType','surface')">🌊 水上</div><div class="picker-btn p-underwater" data-val="underwater" onclick="pick('priceType','underwater')">🤿 水下</div></div></div>
     <div class="form-group"><label class="form-label">接单日期 *</label><input type="date" class="form-input" id="in-date"></div>
     <div class="form-group"><label class="form-label">拍摄时间</label><input type="datetime-local" class="form-input" id="in-shoot-time"></div>
@@ -349,6 +366,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
     <div class="form-group"><label class="form-label">合作费用（元）*</label><input type="number" class="form-input" id="in-amount" placeholder="0" min="0" step="100"></div>
     <div class="form-group"><label class="form-label">车马费</label><div class="picker-row"><div class="picker-btn p-no-tr" data-val="no" onclick="pick('transport','no')">无</div><div class="picker-btn p-has-tr" data-val="yes" onclick="pick('transport','yes')">有车马费</div></div></div>
     <div class="form-group hidden" id="field-transport"><label class="form-label">车马费金额（元）</label><input type="number" class="form-input" id="in-transport" placeholder="0" min="0" step="50"></div>
+    <div class="form-group"><label class="form-label">投流</label><div class="picker-row"><div class="picker-btn p-no-touliu" data-val="no" onclick="pick('touliu','no')">无</div><div class="picker-btn p-has-touliu" data-val="yes" onclick="pick('touliu','yes')">有投流</div></div></div>
+    <div class="form-group hidden" id="field-touliu"><label class="form-label">投流金额（元）</label><input type="number" class="form-input" id="in-touliu" placeholder="0" min="0" step="50"></div>
     <div class="form-group"><label class="form-label">支付状态</label><div class="picker-row"><div class="picker-btn p-unpaid" data-val="unpaid" onclick="pick('status','unpaid')">未付款</div><div class="picker-btn p-paid" data-val="paid" onclick="pick('status','paid')">已付款</div></div></div>
     <div class="form-group hidden" id="field-pay-date"><label class="form-label">实际支付日期</label><input type="date" class="form-input" id="in-pay-date"></div>
     <div class="form-group"><label class="form-label">约定支付日期</label><input type="date" class="form-input" id="in-due-date"></div>
@@ -367,6 +386,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-se
     <div class="form-group"><label class="form-label">🎬 视频 · 水上（元）</label><input type="number" class="form-input" id="in-vid-surf" min="0" step="100"></div>
     <div class="form-group"><label class="form-label">🎬 视频 · 水下（元）</label><input type="number" class="form-input" id="in-vid-under" min="0" step="100"></div>
     <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="in-price-note" placeholder="例如：双平台打包价另议"></textarea></div>
+    <div class="form-group"><label class="form-label">🚀 本月投流金额（元）</label><input type="number" class="form-input" id="in-touliu-amount" placeholder="0" min="0" step="100"></div>
+    <div style="border-top:1px solid var(--border);margin:12px 0 0;padding-top:10px">
+      <div style="font-size:13px;font-weight:600;color:var(--text-dim);margin-bottom:8px">📊 本月账号数据</div>
+      <div class="form-group"><label class="form-label">抖音粉丝数</label><input type="number" class="form-input" id="in-dy-followers" placeholder="0" min="0"></div>
+      <div class="form-group"><label class="form-label">小红书粉丝数</label><input type="number" class="form-input" id="in-xhs-followers" placeholder="0" min="0"></div>
+      <div class="form-group"><label class="form-label">本月爆文</label>
+        <div class="check-row"><div class="check-circle" id="check-dy-hot" onclick="toggleCheck('dy-hot')"></div><span class="check-label">抖音爆文</span></div>
+        <div class="check-row"><div class="check-circle" id="check-xhs-hot" onclick="toggleCheck('xhs-hot')"></div><span class="check-label">小红书爆文</span></div>
+      </div>
+    </div>
     <button class="btn-primary" onclick="savePricing()">保存报价</button>
   </div>
 </div>
@@ -381,8 +410,9 @@ function getQueryParam(name){
   const u=new URLSearchParams(location.search);
   return u.get(name)||'';
 }
-const SUPABASE_URL = getQueryParam('sb_url') || 'https://zaapkiyyziqoubsaaskd.supabase.co';
-const SUPABASE_ANON_KEY = getQueryParam('sb_key') || 'sb_publishable_oQNx70ET9Jx8cYbKcakPLQ_CZpLXLIU';
+// 修复：优先从 localStorage 读取用户保存的配置，解决 PWA 主屏幕模式丢失配置问题
+const SUPABASE_URL = getQueryParam('sb_url') || localStorage.getItem('sb_url') || 'https://zaapkiyyziqoubsaaskd.supabase.co';
+const SUPABASE_ANON_KEY = getQueryParam('sb_key') || localStorage.getItem('sb_key') || 'sb_publishable_oQNx70ET9Jx8cYbKcakPLQ_CZpLXLIU';
 let sb = null;
 let rtChannel = null;
 
@@ -423,7 +453,7 @@ function setSyncStatus(state,text){
 // ========================
 // 数据层
 // ========================
-const CK='wb_cache_v5';
+const CK='wb_cache_v6';
 function loadCache(){try{return JSON.parse(localStorage.getItem(CK))||{orders:[],pricing:{},todos:[]}}catch{return{orders:[],pricing:{},todos:[]}}}
 function saveCache(){localStorage.setItem(CK,JSON.stringify(cache))}
 let cache=loadCache();
@@ -431,7 +461,7 @@ let cache=loadCache();
 let currentMonth=new Date().toISOString().substring(0,7);
 let currentFilter='all';
 let panelYear=new Date().getFullYear();
-let editPicks={platform:'',format:'',priceType:'',status:'unpaid',transport:'no'};
+let editPicks={platform:'',format:'',priceType:'',status:'unpaid',transport:'no',touliu:'no'};
 
 // ========================
 // 云端同步（合并模式，不丢数据）
@@ -481,13 +511,13 @@ async function syncAll(){
 }
 
 function mapOrderToDB(o){
-  return{store:o.store,platform:o.platform,format:o.format,price_type:o.priceType,amount:o.amount,has_transport:o.hasTransport,transport_fee:o.transportFee,status:o.status,order_date:o.orderDate,shoot_time:o.shootTime||null,publish_due:o.publishDue||null,publish_date:o.publishDate||null,due_date:o.dueDate,pay_date:o.payDate,note:o.note,room_id:ROOM};
+  return{store:o.store,platform:o.platform,format:o.format,price_type:o.priceType,amount:o.amount,has_transport:o.hasTransport,transport_fee:o.transportFee,has_touliu:o.hasTouliu||'no',touliu_fee:o.touliuFee||0,status:o.status,order_date:o.orderDate,shoot_time:o.shootTime||null,publish_due:o.publishDue||null,publish_date:o.publishDate||null,due_date:o.dueDate,pay_date:o.payDate,note:o.note,room_id:ROOM};
 }
 function mapOrderFromDB(r){
-  return{id:r.id,store:r.store,platform:r.platform,format:r.format,priceType:r.price_type,amount:parseFloat(r.amount||0),hasTransport:r.has_transport,transportFee:parseFloat(r.transport_fee||0),status:r.status,orderDate:r.order_date,shootTime:r.shoot_time||'',publishDue:r.publish_due||'',publishDate:r.publish_date||'',dueDate:r.due_date,payDate:r.pay_date,note:r.note};
+  return{id:r.id,store:r.store,platform:r.platform,format:r.format,priceType:r.price_type,amount:parseFloat(r.amount||0),hasTransport:r.has_transport,transportFee:parseFloat(r.transport_fee||0),hasTouliu:r.has_touliu||'no',touliuFee:parseFloat(r.touliu_fee||0),status:r.status,orderDate:r.order_date,shootTime:r.shoot_time||'',publishDue:r.publish_due||'',publishDate:r.publish_date||'',dueDate:r.due_date,payDate:r.pay_date,note:r.note};
 }
 function mapPricingFromDB(r){
-  return{imgSurface:parseFloat(r.img_surface||0),imgUnderwater:parseFloat(r.img_underwater||0),vidSurface:parseFloat(r.vid_surface||0),vidUnderwater:parseFloat(r.vid_underwater||0),note:r.note};
+  return{imgSurface:parseFloat(r.img_surface||0),imgUnderwater:parseFloat(r.img_underwater||0),vidSurface:parseFloat(r.vid_surface||0),vidUnderwater:parseFloat(r.vid_underwater||0),note:r.note,touliuAmount:parseFloat(r.touliu_amount||0),dyFollowers:parseInt(r.dy_followers||0),xhsFollowers:parseInt(r.xhs_followers||0),dyHot:r.dy_hot||false,xhsHot:r.xhs_hot||false};
 }
 
 // Realtime
@@ -503,6 +533,20 @@ function subscribeRealtime(){
       else if(status==='CHANNEL_ERROR'||status==='CLOSED')setSyncStatus('offline','⚠ 连接断开');
     });
 }
+
+// 修复：页面重新可见时自动同步（从后台切回前台、或从主屏幕打开时触发）
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible' && sb){
+    syncAll();
+  }
+});
+
+// 修复：定时保活同步 — 每30秒自动拉取一次云端数据，确保朋友的数据能及时显示
+setInterval(()=>{
+  if(sb && document.visibilityState==='visible' && !isSyncing){
+    syncAll();
+  }
+},30000);
 
 // ========================
 // CRUD - Orders
@@ -533,7 +577,8 @@ async function deleteOrderDB(id){
 async function pushPricing(month,data){
   if(!sb)return;
   await sb.from('pricing').upsert({id:ROOM+'_'+month,room_id:ROOM,month:month,
-    img_surface:data.imgSurface,img_underwater:data.imgUnderwater,vid_surface:data.vidSurface,vid_underwater:data.vidUnderwater,note:data.note},
+    img_surface:data.imgSurface,img_underwater:data.imgUnderwater,vid_surface:data.vidSurface,vid_underwater:data.vidUnderwater,note:data.note,
+    touliu_amount:data.touliuAmount||0,dy_followers:data.dyFollowers||0,xhs_followers:data.xhsFollowers||0,dy_hot:data.dyHot||false,xhs_hot:data.xhsHot||false},
     {onConflict:'room_id,month'});
 }
 
@@ -611,8 +656,8 @@ function render(){
   const[y,m]=currentMonth.split('-').map(Number);
   document.getElementById('month-label').textContent=`${y}年${m}月`;
   const mo=cache.orders.filter(o=>o.orderDate&&o.orderDate.startsWith(currentMonth));
-  const paid=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee,0);
-  const unpaid=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee,0);
+  const paid=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  const unpaid=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
   document.getElementById('stat-total').textContent='¥'+(paid+unpaid).toLocaleString();
   document.getElementById('stat-paid').textContent='¥'+paid.toLocaleString();
   document.getElementById('stat-unpaid').textContent='¥'+unpaid.toLocaleString();
@@ -665,12 +710,17 @@ function orderCardHtml(o,today){
   if(o.publishDate)meta+=`<span>✅ 已发布 ${o.publishDate}</span>`;
   if(o.payDate)meta+=`<span>💰 ${o.payDate}</span>`;
   meta+='</div>';
-  const tags=`<span class="tag ${pm[1]}">${pm[0]}</span>${o.format?`<span class="tag ${o.format}">${o.format==='image'?'图文':'视频'}</span>`:''}${o.priceType?`<span class="tag ${o.priceType}">${o.priceType==='surface'?'水上':'水下'}</span>`:''}${o.hasTransport==='yes'?`<span class="tag transport">🚗+${o.transportFee}</span>`:''}`;
+  const fmtMap={image:['图文','image'],single_video:['单店视频','single_video'],guide_video:['攻略视频','guide_video'],video:['视频','video']};
+  const fmt=o.format?fmtMap[o.format]||['视频','video']:null;
+  const tags=`<span class="tag ${pm[1]}">${pm[0]}</span>${fmt?`<span class="tag ${fmt[1]}">${fmt[0]}</span>`:''}${o.priceType?`<span class="tag ${o.priceType}">${o.priceType==='surface'?'水上':'水下'}</span>`:''}${o.hasTransport==='yes'?`<span class="tag transport">🚗+${o.transportFee}</span>`:''}${o.hasTouliu==='yes'?`<span class="tag touliu">🚀+${o.touliuFee||0}</span>`:''}`;
   const note=o.note?`<div class="order-note">📝 ${o.note}</div>`:'';
-  return `<div class="order-card${isShotDone?' shot-done':''}" onclick="openOrderModal('${o.id}')">
-    <div class="order-header"><div><div class="order-store">${o.store}</div>${tags}</div>
+  const cardInner=`<div class="order-header"><div><div class="order-store">${o.store}</div>${tags}</div>
     <div class="order-amount">${(o.amount||0).toLocaleString()}<span class="unit">元</span></div></div>
-    ${meta}${overdue}<div class="order-footer"><span class="status-badge ${sm[1]}">${sm[0]}</span></div>${note}</div>`;
+    ${meta}${overdue}<div class="order-footer"><span class="status-badge ${sm[1]}">${sm[0]}</span></div>${note}`;
+  return `<div class="order-item-wrap" id="wrap-${o.id}">
+    <div class="order-delete-btn" onclick="event.stopPropagation();swipeDelete('${o.id}')">删除</div>
+    <div class="order-card${isShotDone?' shot-done':''}" onclick="cardClick('${o.id}')" ontouchstart="swipeStart(event,'${o.id}')" ontouchmove="swipeMove(event,'${o.id}')" ontouchend="swipeEnd(event,'${o.id}')">${cardInner}</div>
+  </div>`;
 }
 
 function getFiltered(orders){
@@ -684,7 +734,8 @@ function getFiltered(orders){
   if(f==='dy')return orders.filter(o=>o.platform==='dy'||o.platform==='both');
   if(f==='both')return orders.filter(o=>o.platform==='both');
   if(f==='image')return orders.filter(o=>o.format==='image');
-  if(f==='video')return orders.filter(o=>o.format==='video');
+  if(f==='single_video')return orders.filter(o=>o.format==='single_video'||o.format==='video');
+  if(f==='guide_video')return orders.filter(o=>o.format==='guide_video');
   return orders;
 }
 
@@ -706,7 +757,7 @@ function renderArchive(){
     const m=o.orderDate.substring(0,7);
     if(!byMonth[m])byMonth[m]={orders:[],total:0};
     byMonth[m].orders.push(o);
-    byMonth[m].total+=o.amount+o.transportFee;
+    byMonth[m].total+=o.amount+o.transportFee+(o.touliuFee||0);
   });
   const keys=Object.keys(byMonth).sort().reverse();
   sec.innerHTML='<div class="archive-title">📚 历史已结款订单</div>'+keys.map(k=>{
@@ -745,7 +796,8 @@ function openOrderModal(id){
     document.getElementById('in-pay-date').value=o.payDate||'';
     document.getElementById('in-note').value=o.note||'';
     document.getElementById('in-transport').value=o.transportFee||'';
-    pick('platform',o.platform||'');pick('format',o.format||'');pick('priceType',o.priceType||'');pick('status',o.status||'unpaid');pick('transport',o.hasTransport||'no');
+    document.getElementById('in-touliu').value=o.touliuFee||'';
+    pick('platform',o.platform||'');pick('format',o.format||'');pick('priceType',o.priceType||'');pick('status',o.status||'unpaid');pick('transport',o.hasTransport||'no');pick('touliu',o.hasTouliu||'no');
   }else{
     title.textContent='新增订单';del.classList.add('hidden');
     document.getElementById('edit-id').value='';
@@ -759,7 +811,8 @@ function openOrderModal(id){
     document.getElementById('in-pay-date').value='';
     document.getElementById('in-note').value='';
     document.getElementById('in-transport').value='';
-    pick('platform','');pick('format','');pick('priceType','');pick('status','unpaid');pick('transport','no');
+    document.getElementById('in-touliu').value='';
+    pick('platform','');pick('format','');pick('priceType','');pick('status','unpaid');pick('transport','no');pick('touliu','no');
   }
   document.getElementById('order-modal').classList.add('show');
 }
@@ -767,7 +820,7 @@ function closeModal(id){document.getElementById(id).classList.remove('show');}
 document.getElementById('order-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('order-modal');});
 document.getElementById('pricing-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('pricing-modal');});
 
-const pickMap={platform:['xhs','dy','both'],format:['image','video'],priceType:['surface','underwater'],status:['paid','unpaid'],transport:['no','yes']};
+const pickMap={platform:['xhs','dy','both'],format:['image','single_video','guide_video'],priceType:['surface','underwater'],status:['paid','unpaid'],transport:['no','yes'],touliu:['no','yes']};
 function pick(type,val){
   editPicks[type]=val;
   document.querySelectorAll('.picker-btn').forEach(b=>{
@@ -775,6 +828,7 @@ function pick(type,val){
   });
   if(type==='status')document.getElementById('field-pay-date').classList.toggle('hidden',val!=='paid');
   if(type==='transport')document.getElementById('field-transport').classList.toggle('hidden',val!=='yes');
+  if(type==='touliu')document.getElementById('field-touliu').classList.toggle('hidden',val!=='yes');
 }
 
 function saveOrder(){
@@ -789,6 +843,7 @@ function saveOrder(){
     id,store,platform:editPicks.platform,format:editPicks.format,priceType:editPicks.priceType,
     amount,status:editPicks.status,hasTransport:editPicks.transport,
     transportFee:editPicks.transport==='yes'?(parseFloat(document.getElementById('in-transport').value)||0):0,
+    hasTouliu:editPicks.touliu,touliuFee:editPicks.touliu==='yes'?(parseFloat(document.getElementById('in-touliu').value)||0):0,
     orderDate:document.getElementById('in-date').value,shootTime:document.getElementById('in-shoot-time').value,publishDue:document.getElementById('in-publish-due').value,publishDate:document.getElementById('in-publish-date').value,dueDate:document.getElementById('in-due-date').value,
     payDate:editPicks.status==='paid'?document.getElementById('in-pay-date').value:'',
     note:document.getElementById('in-note').value.trim()
@@ -807,14 +862,84 @@ function deleteOrder(){
 }
 
 // ========================
+// 左滑删除（微信风格）
+// ========================
+let swipeStartX=0, swipeStartY=0, swipeDeltaX=0, swipeMoved=false;
+function swipeStart(e,id){
+  const t=e.touches[0];
+  swipeStartX=t.clientX;swipeStartY=t.clientY;swipeDeltaX=0;swipeMoved=false;
+}
+function swipeMove(e,id){
+  const t=e.touches[0];
+  const dx=t.clientX-swipeStartX;
+  const dy=t.clientY-swipeStartY;
+  // 只处理横向滑动（水平位移大于垂直）
+  if(Math.abs(dx)<Math.abs(dy))return;
+  e.preventDefault();
+  swipeMoved=true;
+  swipeDeltaX=dx;
+  const wrap=document.getElementById('wrap-'+id);
+  if(!wrap)return;
+  const card=wrap.querySelector('.order-card');
+  // 左滑（dx<0）跟随手指，右滑收回
+  if(dx<0){
+    card.style.transition='none';
+    card.style.transform='translateX('+Math.max(dx,-76)+'px)';
+  }else{
+    // 已经swiped状态右滑收回
+    if(wrap.classList.contains('swiped')){
+      card.style.transition='none';
+      card.style.transform='translateX('+(-76+dx)+'px)';
+    }
+  }
+}
+function swipeEnd(e,id){
+  const wrap=document.getElementById('wrap-'+id);
+  if(!wrap)return;
+  const card=wrap.querySelector('.order-card');
+  card.style.transition='';
+  card.style.transform='';
+  // 判断滑动方向和距离
+  if(swipeDeltaX<-36){
+    // 左滑超过阈值 → 展开删除按钮
+    // 先关闭其他已展开的
+    document.querySelectorAll('.order-item-wrap.swiped').forEach(w=>{if(w!==wrap)w.classList.remove('swiped')});
+    wrap.classList.add('swiped');
+  }else{
+    // 收回
+    wrap.classList.remove('swiped');
+  }
+}
+function cardClick(id){
+  // 如果有卡片处于swiped状态，先全部收回，不打开编辑
+  const swiped=document.querySelectorAll('.order-item-wrap.swiped');
+  if(swiped.length>0){
+    swiped.forEach(w=>w.classList.remove('swiped'));
+    return;
+  }
+  openOrderModal(id);
+}
+function swipeDelete(id){
+  if(!confirm('确认删除此订单？'))return;
+  cache.orders=cache.orders.filter(o=>o.id!=id);
+  saveCache();deleteOrderDB(id);render();toast('已删除');
+}
+// 点击页面空白处收回swiped卡片
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.order-item-wrap')){
+    document.querySelectorAll('.order-item-wrap.swiped').forEach(w=>w.classList.remove('swiped'));
+  }
+});
+
+// ========================
 // 报价
 // ========================
 function renderPricing(){
   const[y,m]=currentMonth.split('-').map(Number);
   document.getElementById('pricing-month-label').textContent=`${y}年${m}月报价`;
   const mo=cache.orders.filter(o=>o.orderDate&&o.orderDate.startsWith(currentMonth));
-  const paid=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee,0);
-  const unpaid=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee,0);
+  const paid=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  const unpaid=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
   document.getElementById('pstat-total').textContent='¥'+(paid+unpaid).toLocaleString();
   document.getElementById('pstat-paid').textContent='¥'+paid.toLocaleString();
   document.getElementById('pstat-unpaid').textContent='¥'+unpaid.toLocaleString();
@@ -825,8 +950,22 @@ function renderPricing(){
     d.innerHTML=`<div class="pg-cell pg-label">格式</div><div class="pg-cell pg-label">🌊 水上</div><div class="pg-cell pg-label">🤿 水下</div>
       <div class="pg-cell pg-label">🖼️ 图文</div><div class="pg-cell pg-val blue">¥${(p.imgSurface||0).toLocaleString()}</div><div class="pg-cell pg-val purple">¥${(p.imgUnderwater||0).toLocaleString()}</div>
       <div class="pg-cell pg-label">🎬 视频</div><div class="pg-cell pg-val green">¥${(p.vidSurface||0).toLocaleString()}</div><div class="pg-cell pg-val amber">¥${(p.vidUnderwater||0).toLocaleString()}</div>`;
+    // 粉丝数和爆文信息
+    const info=document.getElementById('pricing-extra');
+    if(info){
+      const dyF=p.dyFollowers||0,xhsF=p.xhsFollowers||0,tl=p.touliuAmount||0;
+      info.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px">
+        <span>🚀 本月投流 <b style="color:var(--purple)">¥${tl.toLocaleString()}</b></span>
+        <span>📱 抖音粉丝 <b style="color:var(--text)">${dyF.toLocaleString()}</b></span>
+        <span>📕 小红书粉丝 <b style="color:var(--text)">${xhsF.toLocaleString()}</b></span>
+        <span>${p.dyHot?'🔥 抖音爆文':''}</span>
+        <span>${p.xhsHot?'🔥 小红书爆文':''}</span>
+      </div>`;
+    }
   }else{
     d.innerHTML='<div class="pg-cell" style="grid-column:span 3;color:var(--text-dim)">本月尚未设置报价，点击"编辑报价"</div>';
+    const info=document.getElementById('pricing-extra');
+    if(info)info.innerHTML='';
   }
   const keys=Object.keys(cache.pricing).sort().reverse();
   const hist=document.getElementById('pricing-history');
@@ -851,6 +990,11 @@ function openPricingModal(){
   document.getElementById('in-vid-surf').value=p.vidSurface||'';
   document.getElementById('in-vid-under').value=p.vidUnderwater||'';
   document.getElementById('in-price-note').value=p.note||'';
+  document.getElementById('in-touliu-amount').value=p.touliuAmount||'';
+  document.getElementById('in-dy-followers').value=p.dyFollowers||'';
+  document.getElementById('in-xhs-followers').value=p.xhsFollowers||'';
+  document.getElementById('check-dy-hot').classList.toggle('checked',!!p.dyHot);
+  document.getElementById('check-xhs-hot').classList.toggle('checked',!!p.xhsHot);
   document.getElementById('pricing-modal').classList.add('show');
 }
 function savePricing(){
@@ -859,12 +1003,21 @@ function savePricing(){
     imgUnderwater:parseFloat(document.getElementById('in-img-under').value)||0,
     vidSurface:parseFloat(document.getElementById('in-vid-surf').value)||0,
     vidUnderwater:parseFloat(document.getElementById('in-vid-under').value)||0,
-    note:document.getElementById('in-price-note').value.trim()
+    note:document.getElementById('in-price-note').value.trim(),
+    touliuAmount:parseFloat(document.getElementById('in-touliu-amount').value)||0,
+    dyFollowers:parseInt(document.getElementById('in-dy-followers').value)||0,
+    xhsFollowers:parseInt(document.getElementById('in-xhs-followers').value)||0,
+    dyHot:document.getElementById('check-dy-hot').classList.contains('checked'),
+    xhsHot:document.getElementById('check-xhs-hot').classList.contains('checked')
   };
-  if(data.imgSurface+data.imgUnderwater+data.vidSurface+data.vidUnderwater<=0){toast('请至少填一个价格');return;}
   cache.pricing[currentMonth]=data;
   saveCache();closeModal('pricing-modal');renderPricing();toast('报价已保存');
   pushPricing(currentMonth,data).then(()=>{syncAll();});
+}
+
+// 爆文勾选切换
+function toggleCheck(id){
+  document.getElementById('check-'+id).classList.toggle('checked');
 }
 
 // ========================
@@ -873,7 +1026,7 @@ function savePricing(){
 function renderUnpaid(){
   const list=document.getElementById('unpaid-list');
   const unpaid=cache.orders.filter(o=>o.status==='unpaid').sort((a,b)=>(b.dueDate||'').localeCompare(a.dueDate||''));
-  const total=unpaid.reduce((s,o)=>s+o.amount+o.transportFee,0);
+  const total=unpaid.reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
   if(unpaid.length===0){
     list.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-dim)">🎉 没有未结款订单</div>';return;
   }
@@ -885,7 +1038,7 @@ function renderUnpaid(){
     const od=o.dueDate&&o.dueDate<today;
     return `<div style="background:var(--bg);border-radius:10px;padding:10px;margin-bottom:5px;border-left:3px solid ${od?'var(--red)':'var(--yellow)'}" onclick="selectMonth('${m}');togglePanel('unpaid-panel');">
       <div style="display:flex;justify-content:space-between"><div><div style="font-size:14px;font-weight:600">${o.store}</div><div style="font-size:11px;color:var(--text-dim)">${y}年${mm}月 · ${pm[o.platform]} · ${o.format==='image'?'图文':'视频'}</div></div>
-      <div style="font-size:15px;font-weight:700;color:var(--red-dark)">¥${(o.amount+o.transportFee).toLocaleString()}</div></div>
+      <div style="font-size:15px;font-weight:700;color:var(--red-dark)">¥${(o.amount+o.transportFee+(o.touliuFee||0)).toLocaleString()}</div></div>
       ${od?'<div style="font-size:11px;color:var(--red-dark);margin-top:3px">⚠ 已逾期 '+o.dueDate+'</div>':o.dueDate?'<div style="font-size:11px;color:var(--text-dim);margin-top:3px">⏰ 约定 '+o.dueDate+'</div>':''}
     </div>`;
   }).join('');
@@ -899,8 +1052,8 @@ function renderStoreStats(){
   const map={};
   cache.orders.forEach(o=>{
     const n=o.store||'未命名';if(!map[n])map[n]={count:0,total:0,paid:0,unpaid:0,platforms:{},last:''};
-    map[n].count++;map[n].total+=o.amount+o.transportFee;
-    if(o.status==='paid')map[n].paid+=o.amount+o.transportFee;else map[n].unpaid+=o.amount+o.transportFee;
+    map[n].count++;map[n].total+=o.amount+o.transportFee+(o.touliuFee||0);
+    if(o.status==='paid')map[n].paid+=o.amount+o.transportFee+(o.touliuFee||0);else map[n].unpaid+=o.amount+o.transportFee+(o.touliuFee||0);
     const pm=o.platform||'xhs';map[n].platforms[pm]=(map[n].platforms[pm]||0)+1;
     if(o.orderDate&&o.orderDate>map[n].last)map[n].last=o.orderDate;
   });
@@ -1009,17 +1162,22 @@ async function init(){
     // 先上传本地数据到云端，再拉取合并
     await syncAll();
     subscribeRealtime();
-    // 如果本地和云端都没有数据，才加载示例
-    if(cache.orders.length===0&&Object.keys(cache.pricing).length===0){
+    // 修复：只有当本地和云端都确实没有数据时，才加载示例
+    // 增加二次检查：同步后再从云端拉一次确认
+    const cloudEmpty = cache.orders.length===0 && Object.keys(cache.pricing).length===0;
+    if(cloudEmpty){
       loadSampleData();
       // 上传导示数据到云端
       for(const o of cache.orders){await pushOrder(o);}
       for(const m in cache.pricing){await pushPricing(m,cache.pricing[m]);}
       for(const t of cache.todos){await pushTodo(t);}
       render();renderPricing();
+    }else{
+      // 云端有数据，确保用云端数据渲染
+      render();renderPricing();renderTodos();
     }
   }else{
-    // 离线模式：加载示例数据
+    // 离线模式：仅本地无数据时加载示例
     if(cache.orders.length===0&&Object.keys(cache.pricing).length===0){
       loadSampleData();
     }
@@ -1035,8 +1193,8 @@ function loadSampleData(){
     const due2=new Date(today);due2.setDate(due2.getDate()-1);
     cache.orders=[
       {id:'o1',store:'张记火锅（国贸店）',platform:'xhs',format:'image',priceType:'surface',amount:1500,status:'paid',payDate:f(d1),dueDate:f(d1),orderDate:f(d2),hasTransport:'yes',transportFee:200,note:'需返图3张'},
-      {id:'o2',store:'蜜雪冰城（步行街）',platform:'both',format:'video',priceType:'surface',amount:3000,status:'unpaid',payDate:'',dueDate:f(due1),orderDate:f(d2),hasTransport:'no',transportFee:0,note:'双平台各发1条'},
-      {id:'o3',store:'老王烧烤',platform:'dy',format:'video',priceType:'underwater',amount:800,status:'unpaid',payDate:'',dueDate:f(due2),orderDate:f(d2),hasTransport:'yes',transportFee:150,note:'约定3天付款'}
+      {id:'o2',store:'蜜雪冰城（步行街）',platform:'both',format:'single_video',priceType:'surface',amount:3000,status:'unpaid',payDate:'',dueDate:f(due1),orderDate:f(d2),hasTransport:'no',transportFee:0,hasTouliu:'yes',touliuFee:500,note:'双平台各发1条'},
+      {id:'o3',store:'老王烧烤',platform:'dy',format:'guide_video',priceType:'underwater',amount:800,status:'unpaid',payDate:'',dueDate:f(due2),orderDate:f(d2),hasTransport:'yes',transportFee:150,hasTouliu:'no',touliuFee:0,note:'约定3天付款'}
     ];
     cache.pricing[m]={imgSurface:1500,imgUnderwater:1000,vidSurface:3000,vidUnderwater:2000,note:'双平台打包价另议'};
     cache.todos=[
