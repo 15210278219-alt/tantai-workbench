@@ -60,18 +60,18 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .app-layout{display:flex;min-height:100vh}
 
 /* 左侧导航 */
-.side-nav{position:fixed;left:0;top:var(--safe-top);bottom:0;width:76px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:12px 0;z-index:60;box-shadow:4px 0 20px rgba(30,58,138,.06);backdrop-filter:blur(12px)}
-.side-logo{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--woody-yellow),var(--buzz-green));display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:16px;box-shadow:var(--shadow)}
-.side-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;width:64px;border-radius:12px;cursor:pointer;transition:all .2s;color:var(--text-dim);margin-bottom:4px}
+.side-nav{position:fixed;left:0;top:var(--safe-top);bottom:0;width:120px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:14px 0;z-index:60;box-shadow:4px 0 20px rgba(30,58,138,.06);backdrop-filter:blur(12px)}
+.side-logo{width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,var(--woody-yellow),var(--buzz-green));display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:18px;box-shadow:var(--shadow)}
+.side-item{display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 6px;width:104px;border-radius:16px;cursor:pointer;transition:all .2s;color:var(--text-dim);margin-bottom:6px}
 .side-item:active{background:var(--card-hover)}
 .side-item.active{background:linear-gradient(135deg,var(--blue-light),rgba(118,176,65,.12));color:var(--blue-dark);box-shadow:0 2px 8px rgba(59,130,246,.1)}
-.side-icon{font-size:22px}
-.side-label{font-size:10px;font-weight:600}
+.side-icon{font-size:36px}
+.side-label{font-size:14px;font-weight:600}
 .side-bottom{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:8px;padding-bottom:calc(8px + var(--safe-bottom))}
-.toy-badge{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow)}
+.toy-badge{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow)}
 
 /* 主内容区 */
-.main-content{flex:1;margin-left:76px;min-height:100vh}
+.main-content{flex:1;margin-left:120px;min-height:100vh}
 
 /* 导航 */
 .top-nav{position:sticky;top:var(--safe-top);z-index:50;background:rgba(255,255,255,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;padding:0 16px;display:none}
@@ -298,9 +298,6 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   <div class="side-item" data-page="projects" onclick="switchPage('projects')">
     <div class="side-icon">📁</div><div class="side-label">项目</div>
   </div>
-  <div class="side-item" data-page="materials" onclick="switchPage('materials')">
-    <div class="side-icon">🎬</div><div class="side-label">素材</div>
-  </div>
   <div class="side-item" data-page="ideas" onclick="switchPage('ideas')">
     <div class="side-icon">💡</div><div class="side-label">选题</div>
   </div>
@@ -445,17 +442,6 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     <div style="font-size:13px;color:var(--text-dim);margin-top:4px">未拍摄完成的订单</div>
   </div>
   <div class="list" id="project-list"></div>
-</div>
-
-<!-- 素材页 -->
-<div id="page-materials" class="hidden">
-  <div style="padding:20px 16px 8px">
-    <div style="font-size:22px;font-weight:800;color:var(--text)">🎬 素材库</div>
-    <div style="font-size:13px;color:var(--text-dim);margin-top:4px">管理你的探店素材</div>
-  </div>
-  <div style="padding:0 16px">
-    <div class="empty-state"><div class="icon">🎬</div><div>素材库即将上线<br>🚀 飞向宇宙，浩瀚无垠！</div></div>
-  </div>
 </div>
 
 <!-- 选题页 -->
@@ -835,7 +821,7 @@ function switchTab(t){
 }
 
 // 页面切换
-const pages=['home','orders','pricing','todo','projects','materials','ideas'];
+const pages=['home','orders','pricing','todo','projects','ideas'];
 let currentPage='home';
 function switchPage(p){
   currentPage=p;
