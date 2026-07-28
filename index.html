@@ -947,13 +947,13 @@ function render(){
   const[y,m]=currentMonth.split('-').map(Number);
   document.getElementById('month-label').textContent=`${y}年${m}月`;
   const mo=cache.orders.filter(o=>o.orderDate&&o.orderDate.startsWith(currentMonth));
-  const paid=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  const allTotal=mo.reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  const paidFull=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
   const unpaidFull=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
   const depositTotal=mo.filter(o=>o.status==='unpaid'&&o.hasDeposit==='yes').reduce((s,o)=>s+(o.depositFee||0),0);
-  const unpaid=unpaidFull-depositTotal;
-  document.getElementById('stat-total').textContent='¥'+(paid+unpaid).toLocaleString();
-  document.getElementById('stat-paid').textContent='¥'+paid.toLocaleString();
-  document.getElementById('stat-unpaid').textContent='¥'+unpaid.toLocaleString();
+  document.getElementById('stat-total').textContent='¥'+allTotal.toLocaleString();
+  document.getElementById('stat-paid').textContent='¥'+(paidFull+depositTotal).toLocaleString();
+  document.getElementById('stat-unpaid').textContent='¥'+(unpaidFull-depositTotal).toLocaleString();
 
   let filtered=getFiltered(mo).sort((a,b)=>{
     const now=new Date();
@@ -1007,8 +1007,11 @@ function orderCardHtml(o,today){
   const fmt=o.format?fmtMap[o.format]||['视频','video']:null;
   const tags=`<span class="tag ${pm[1]}">${pm[0]}</span>${fmt?`<span class="tag ${fmt[1]}">${fmt[0]}</span>`:''}${o.videoDuration?`<span class="tag" style="background:var(--blue-dim);color:var(--blue-dark)">⏱️${{dur_1min:'1min',dur_1_5min:'1.5min',dur_2min:'2min',dur_2_5min:'2.5min',dur_3min:'3min',dur_3_5min:'3.5min',dur_4min:'4min'}[o.videoDuration]||o.videoDuration}</span>`:''}${o.priceType?`<span class="tag ${o.priceType}">${o.priceType==='surface'?'水上':'水下'}</span>`:''}${o.hasTransport==='yes'?`<span class="tag transport">🚗+${o.transportFee}</span>`:''}${o.hasTouliu==='yes'?`<span class="tag touliu">🚀+${o.touliuFee||0}</span>`:''}${o.hasDeposit==='yes'?`<span class="tag" style="background:var(--green-dim);color:var(--green-dark)">💰定金${o.depositFee||0}</span>`:''}`;
   const note=o.note?`<div class="order-note">📝 ${o.note}</div>`:'';
+  const orderTotal=(o.amount||0)+(o.transportFee||0)+(o.touliuFee||0);
+  const orderDeposit=(o.hasDeposit==='yes'&&o.status==='unpaid')?(o.depositFee||0):0;
+  const orderRemain=orderTotal-orderDeposit;
   const cardInner=`<div class="order-header"><div><div class="order-store">${o.store}</div>${tags}</div>
-    <div class="order-amount">${(o.amount||0).toLocaleString()}<span class="unit">元</span></div></div>
+    <div class="order-amount">${orderRemain.toLocaleString()}<span class="unit">元</span>${orderDeposit>0?`<div style="font-size:11px;color:var(--green-dark);font-weight:500;margin-top:2px">已付定金${orderDeposit.toLocaleString()}</div>`:''}</div></div>
     ${meta}${overdue}<div class="order-footer"><span class="status-badge ${sm[1]}">${sm[0]}</span></div>${note}`;
   return `<div class="order-item-wrap" id="wrap-${o.id}">
     <div class="order-delete-btn" onclick="event.stopPropagation();swipeDelete('${o.id}')">删除</div>
@@ -1276,13 +1279,13 @@ function renderPricing(){
   const[y,m]=currentMonth.split('-').map(Number);
   document.getElementById('pricing-month-label').textContent=`${y}年${m}月报价`;
   const mo=cache.orders.filter(o=>o.orderDate&&o.orderDate.startsWith(currentMonth));
-  const paid=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  const allTotal=mo.reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  const paidFull=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
   const unpaidFull=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
   const depositTotal=mo.filter(o=>o.status==='unpaid'&&o.hasDeposit==='yes').reduce((s,o)=>s+(o.depositFee||0),0);
-  const unpaid=unpaidFull-depositTotal;
-  document.getElementById('pstat-total').textContent='¥'+(paid+unpaid).toLocaleString();
-  document.getElementById('pstat-paid').textContent='¥'+paid.toLocaleString();
-  document.getElementById('pstat-unpaid').textContent='¥'+unpaid.toLocaleString();
+  document.getElementById('pstat-total').textContent='¥'+allTotal.toLocaleString();
+  document.getElementById('pstat-paid').textContent='¥'+(paidFull+depositTotal).toLocaleString();
+  document.getElementById('pstat-unpaid').textContent='¥'+(unpaidFull-depositTotal).toLocaleString();
 
   const p=cache.pricing[currentMonth];
   const d=document.getElementById('pricing-display');
@@ -1367,18 +1370,20 @@ function renderUnpaid(){
   const list=document.getElementById('unpaid-list');
   const unpaid=cache.orders.filter(o=>o.status==='unpaid').sort((a,b)=>(b.dueDate||'').localeCompare(a.dueDate||''));
   const total=unpaid.reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  const depositTotal=unpaid.filter(o=>o.hasDeposit==='yes').reduce((s,o)=>s+(o.depositFee||0),0);
+  const remainTotal=total-depositTotal;
   if(unpaid.length===0){
     list.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-dim)">🎉 没有未结款订单</div>';return;
   }
   const today=new Date().toISOString().split('T')[0];
   const pm={xhs:'小红书',dy:'抖音',both:'双平台'};
-  list.innerHTML='<div style="font-size:13px;color:var(--red-dark);font-weight:600;padding:4px 0 8px">共'+unpaid.length+'笔 · ¥'+total.toLocaleString()+'</div>'+unpaid.map(o=>{
+  list.innerHTML='<div style="font-size:13px;color:var(--red-dark);font-weight:600;padding:4px 0 8px">共'+unpaid.length+'笔 · ¥'+remainTotal.toLocaleString()+'</div>'+unpaid.map(o=>{
     const m=o.orderDate?o.orderDate.substring(0,7):'';
     const[y,mm]=m.split('-').map(Number);
     const od=o.dueDate&&o.dueDate<today;
     return `<div style="background:var(--bg);border-radius:10px;padding:10px;margin-bottom:5px;border-left:3px solid ${od?'var(--red)':'var(--yellow)'}" onclick="selectMonth('${m}');togglePanel('unpaid-panel');">
       <div style="display:flex;justify-content:space-between"><div><div style="font-size:14px;font-weight:600">${o.store}</div><div style="font-size:11px;color:var(--text-dim)">${y}年${mm}月 · ${pm[o.platform]} · ${o.format==='image'?'图文':'视频'}</div></div>
-      <div style="font-size:15px;font-weight:700;color:var(--red-dark)">¥${(o.amount+o.transportFee+(o.touliuFee||0)).toLocaleString()}</div></div>
+      <div style="font-size:15px;font-weight:700;color:var(--red-dark)">¥${(o.amount+o.transportFee+(o.touliuFee||0)-(o.hasDeposit==='yes'?(o.depositFee||0):0)).toLocaleString()}</div></div>
       ${od?'<div style="font-size:11px;color:var(--red-dark);margin-top:3px">⚠ 已逾期 '+o.dueDate+'</div>':o.dueDate?'<div style="font-size:11px;color:var(--text-dim);margin-top:3px">⏰ 约定 '+o.dueDate+'</div>':''}
     </div>`;
   }).join('');
