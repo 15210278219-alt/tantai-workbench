@@ -453,7 +453,7 @@ function setSyncStatus(state,text){
 // ========================
 // 数据层
 // ========================
-const CK='wb_cache_v6';
+const CK='wb_cache_v7';
 function loadCache(){try{return JSON.parse(localStorage.getItem(CK))||{orders:[],pricing:{},todos:[]}}catch{return{orders:[],pricing:{},todos:[]}}}
 function saveCache(){localStorage.setItem(CK,JSON.stringify(cache))}
 let cache=loadCache();
@@ -1186,27 +1186,42 @@ async function init(){
   if(rd)rd.textContent='当前房间: '+ROOM+'（两人必须相同才能共享）';
   // 先尝试连接云端
   if(initSupabase()){
-    // 先上传本地数据到云端，再拉取合并
-    await syncAll();
+    // 修复：先从云端拉取数据（不先上传本地，防止旧缓存污染云端）
+    setSyncStatus('syncing','同步中...');
+    try{
+      const[{data:orders},{data:pricing},{data:todos}]=await Promise.all([
+        sb.from('orders').select('*'),
+        sb.from('pricing').select('*'),
+        sb.from('todos').select('*')
+      ]);
+      // 云端数据为准，覆盖本地
+      if(orders){
+        cache.orders=orders.map(mapOrderFromDB).filter(o=>!deletedOrderIds.has(o.id));
+      }
+      if(pricing){
+        pricing.forEach(p=>{cache.pricing[p.month]=mapPricingFromDB(p);});
+      }
+      if(todos){
+        cache.todos=todos.map(t=>({id:t.id,text:t.text,done:t.done,created:t.created}));
+      }
+      saveCache();
+    }catch(e){console.error('init拉取错误:',e);}
+    // 再启动正常同步
     subscribeRealtime();
-    // 修复：只有当本地和云端都确实没有数据时，才加载示例
-    // 增加二次检查：同步后再从云端拉一次确认
+    setSyncStatus('','☁️ 云端已连接');
     const cloudEmpty = cache.orders.length===0 && Object.keys(cache.pricing).length===0;
     if(cloudEmpty){
       loadSampleData();
-      // 上传导示数据到云端
       for(const o of cache.orders){await pushOrder(o);}
       for(const m in cache.pricing){await pushPricing(m,cache.pricing[m]);}
       for(const t of cache.todos){await pushTodo(t);}
-      render();renderPricing();
-    }else{
-      // 云端有数据，确保用云端数据渲染
-      render();renderPricing();renderTodos();
     }
+    render();renderPricing();renderTodos();
   }else{
     // 离线模式：仅本地无数据时加载示例
     if(cache.orders.length===0&&Object.keys(cache.pricing).length===0){
       loadSampleData();
+    }
     }
     render();renderPricing();
   }
