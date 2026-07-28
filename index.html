@@ -453,7 +453,7 @@ function setSyncStatus(state,text){
 // ========================
 // 数据层
 // ========================
-const CK='wb_cache_v7';
+const CK='wb_cache_v8';
 function loadCache(){try{return JSON.parse(localStorage.getItem(CK))||{orders:[],pricing:{},todos:[]}}catch{return{orders:[],pricing:{},todos:[]}}}
 function saveCache(){localStorage.setItem(CK,JSON.stringify(cache))}
 let cache=loadCache();
@@ -469,8 +469,13 @@ let editPicks={platform:'',format:'',priceType:'',status:'unpaid',transport:'tr_
 let isSyncing=false;
 let isDeleting=false; // 删除操作进行中，阻止syncAll
 // 已删除订单ID持久化存储，防止刷新页面后syncAll又上传/拉回
-const DK='wb_deleted_v1';
-function loadDeletedIds(){try{return new Set(JSON.parse(localStorage.getItem(DK))||[])}catch{return new Set()}}
+const DK='wb_deleted_v2';
+function loadDeletedIds(){
+  const saved=JSON.parse(localStorage.getItem(DK)||'[]');
+  // 硬编码已确认删除的测试订单ID，确保永远不会回来
+  const hardcoded=['o2','o3','o1','test001','test002','o1785189324771','o1785188307087','o1785189245151','o1785188436054'];
+  return new Set([...saved,...hardcoded]);
+}
 function saveDeletedIds(){localStorage.setItem(DK,JSON.stringify([...deletedOrderIds]))}
 const deletedOrderIds=loadDeletedIds();
 async function syncAll(){
