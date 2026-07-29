@@ -337,6 +337,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
       <div class="value" id="home-income" style="color:var(--green-dark)">¥0</div>
     </div>
   </div>
+  <!-- 拍摄日历 -->
+  <div id="home-calendar" style="padding:4px 16px 0"></div>
   <!-- 快捷操作 -->
   <div style="padding:12px 16px 4px">
     <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px">🚀 快捷操作</div>
@@ -847,20 +849,106 @@ function switchPage(p){
 function renderHome(){
   const pending=cache.todos.filter(t=>!t.done).length;
   document.getElementById('home-todo-count').textContent=pending;
-  // 进行中项目 = 未拍摄完成的订单
-  const now=new Date();
+  // 进行中项目 = 未拍摄完成的订单（字符串比较避免时区偏移）
+  const nowIso=new Date().toISOString();
   const projects=cache.orders.filter(o=>{
     if(!o.shootTime)return false;
-    return new Date(o.shootTime)>now;
+    return o.shootTime.substring(0,16) > nowIso.substring(0,16);
   });
   document.getElementById('home-project-count').textContent=projects.length;
   // 本月收入
   const mo=cache.orders.filter(o=>o.orderDate&&o.orderDate.startsWith(currentMonth));
   const income=mo.reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
   document.getElementById('home-income').textContent='¥'+income.toLocaleString();
+  // 渲染月历
+  renderHomeCalendar();
   // 随机问候
   const greetings=['飞向宇宙，浩瀚无垠！🚀','你是我最好的朋友！🤠','你有个朋友在我这里🎵','无限的边界，就在前方！👽','今天也要加油探店哦！🐻'];
   document.getElementById('home-greeting').textContent=greetings[Math.floor(Math.random()*greetings.length)];
+}
+
+// 首页拍摄日历
+let calMonth=currentMonth;
+function renderHomeCalendar(){
+  const cal=document.getElementById('home-calendar');
+  if(!cal)return;
+  const[y,m]=calMonth.split('-').map(Number);
+  const firstDay=new Date(y,m-1,1);
+  const daysInMonth=new Date(y,m,0).getDate();
+  const startWeekday=firstDay.getDay(); // 0=周日
+  const todayDate=new Date().toISOString().split('T')[0];
+
+  // 收集本月有拍摄行程的日期
+  const shootDays={};
+  cache.orders.forEach(o=>{
+    if(!o.shootTime)return;
+    const dt=o.shootTime.substring(0,10); // "2026-07-30"
+    if(dt.startsWith(calMonth)){
+      if(!shootDays[dt])shootDays[dt]=[];
+      shootDays[dt].push(o);
+    }
+  });
+
+  const weekDays=['日','一','二','三','四','五','六'];
+  let html='<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-bottom:4px">';
+  // 月份切换栏
+  html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <span onclick="shiftCalMonth(-1)" style="width:28px;height:28px;border-radius:8px;background:var(--blue-dim);color:var(--blue-dark);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px">‹</span>
+    <span style="font-size:15px;font-weight:700;color:var(--text)">📅 ${y}年${m}月拍摄行程</span>
+    <span onclick="shiftCalMonth(1)" style="width:28px;height:28px;border-radius:8px;background:var(--blue-dim);color:var(--blue-dark);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px">›</span>
+  </div>`;
+  // 星期表头
+  html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">';
+  weekDays.forEach(w=>{html+=`<div style="text-align:center;font-size:11px;color:var(--text-dim);font-weight:600;padding:3px 0">${w}</div>`;});
+  html+='</div>';
+  // 日期网格
+  html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">';
+  // 前置空格
+  for(let i=0;i<startWeekday;i++)html+='<div></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=`${calMonth}-${String(d).padStart(2,'0')}`;
+    const hasShoot=shootDays[dateStr];
+    const isToday=dateStr===todayDate;
+    const count=hasShoot?hasShoot.length:0;
+    let bg='var(--card)',color='var(--text)',badge='';
+    if(hasShoot){
+      bg='var(--green-dim)';color='var(--green-dark)';
+      badge=`<div style="position:absolute;top:1px;right:3px;font-size:8px;font-weight:700;color:var(--green-dark)">${count}</div>`;
+    }
+    if(isToday){
+      bg='var(--blue)';color='#fff';
+    }
+    const clickable=hasShoot?`onclick="showDayShoot('${dateStr}')"`:'';
+    html+=`<div ${clickable} style="position:relative;aspect-ratio:1;background:${bg};color:${color};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:${hasShoot?'pointer':'default'}">${badge}${d}</div>`;
+  }
+  html+='</div>';
+  // 底部提示
+  const totalShoot=Object.keys(shootDays).length;
+  if(totalShoot>0){
+    html+=`<div style="font-size:11px;color:var(--text-dim);margin-top:8px;text-align:center">本月共 ${totalShoot} 天有拍摄行程</div>`;
+  }
+  html+='</div>';
+  cal.innerHTML=html;
+}
+function shiftCalMonth(d){
+  const[y,m]=calMonth.split('-').map(Number);
+  let ny=y,nm=m+d;
+  if(nm<1){nm=12;ny--;}
+  if(nm>12){nm=1;ny++;}
+  calMonth=`${ny}-${String(nm).padStart(2,'0')}`;
+  renderHomeCalendar();
+}
+function showDayShoot(dateStr){
+  // 切到订单页并弹出当天拍摄订单
+  const dayOrders=cache.orders.filter(o=>o.shootTime&&o.shootTime.substring(0,10)===dateStr);
+  if(dayOrders.length===0){toast('该天无拍摄行程');return;}
+  // 切到该订单所在月份
+  currentMonth=dateStr.substring(0,7);
+  switchPage('orders');
+  setTimeout(()=>{
+    const names=dayOrders.map(o=>`${o.store} ${o.shootTime.substring(11,16)}`).join('\n');
+    toast('📸 '+dateStr+' 拍摄：\n'+names,3000);
+  },300);
 }
 
 // 待办页面渲染
@@ -901,11 +989,12 @@ function addTodoFromPage(){
 // 项目页面渲染
 function renderProjects(){
   const list=document.getElementById('project-list');
-  const now=new Date();
+  const nowIso=new Date().toISOString();
   const projects=cache.orders.filter(o=>{
     if(!o.shootTime)return false;
-    return new Date(o.shootTime)>now;
-  }).sort((a,b)=>new Date(a.shootTime)-new Date(b.shootTime));
+    // 字符串比较，避免时区偏移
+    return o.shootTime.substring(0,16) > nowIso.substring(0,16);
+  }).sort((a,b)=>(a.shootTime||'').localeCompare(b.shootTime||''));
   if(projects.length===0){
     list.innerHTML='<div class="empty-state"><div class="icon">📁</div><div>暂无进行中项目<br>所有拍摄都完成啦！🎉</div></div>';return;
   }
@@ -956,16 +1045,16 @@ function render(){
   document.getElementById('stat-unpaid').textContent='¥'+(unpaidFull-depositTotal).toLocaleString();
 
   let filtered=getFiltered(mo).sort((a,b)=>{
-    const now=new Date();
-    const ad=a.shootTime?new Date(a.shootTime):null;
-    const bd=b.shootTime?new Date(b.shootTime):null;
-    const aDone=ad&&ad<now;
-    const bDone=bd&&bd<now;
+    const nowIso=new Date().toISOString().substring(0,16);
+    const ad=a.shootTime?a.shootTime.substring(0,16):null;
+    const bd=b.shootTime?b.shootTime.substring(0,16):null;
+    const aDone=ad&&ad<nowIso;
+    const bDone=bd&&bd<nowIso;
     // 已拍摄的排最后
     if(aDone&&!bDone)return 1;
     if(!aDone&&bDone)return -1;
     // 都未拍摄：按拍摄时间升序（最近的在前）
-    if(ad&&bd)return ad-bd;
+    if(ad&&bd)return ad.localeCompare(bd);
     // 一个有拍摄时间一个没有：有拍摄时间的在前
     if(ad&&!bd)return -1;
     if(!ad&&bd)return 1;
@@ -989,14 +1078,21 @@ function orderCardHtml(o,today){
   let isShotDone=false;
   let meta=`<div class="order-meta"><span>📅 ${o.orderDate||'-'}</span>`;
   if(o.shootTime){
-    const sd=new Date(o.shootTime);
-    const now=new Date();
-    const diff=Math.round((sd-now)/86400000);
-    if(diff<0)isShotDone=true;
-    const dateStr=sd.toLocaleDateString('zh-CN',{month:'numeric',day:'numeric'});
-    const timeStr=sd.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
-    const label=diff===0?`📸 今天 ${timeStr}`:diff===1?`📸 明天 ${timeStr}`:diff<0?`✅ 已拍 ${dateStr}`:`📸 ${dateStr} ${timeStr}`;
-    meta+=`<span class="${diff<0?'shoot-done':'shoot-tag'}">${label}</span>`;
+    // 字符串解析，避免 new Date() 时区偏移（如 17:00 变凌晨 1:00）
+    const dt=o.shootTime; // "2026-07-30T17:00" 或 "2026-07-30T17:00+08:00"
+    const datePart=dt.substring(0,10); // "2026-07-30"
+    const timePart=dt.substring(11,16); // "17:00"
+    const[yd,md,dd]=datePart.split('-').map(Number);
+    const monthDay=`${md}月${dd}日`;
+    const todayDate=today; // "2026-07-29" 格式
+    const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
+    const tomorrowDate=tomorrow.toISOString().split('T')[0];
+    let label,cls;
+    if(datePart<todayDate){isShotDone=true;label=`✅ 已拍 ${md}/${dd}`;cls='shoot-done';}
+    else if(datePart===todayDate){label=`📸 今天 ${timePart}`;cls='shoot-tag';}
+    else if(datePart===tomorrowDate){label=`📸 明天 ${timePart}`;cls='shoot-tag';}
+    else{label=`📸 ${md}/${dd} ${timePart}`;cls='shoot-tag';}
+    meta+=`<span class="${cls}">${label}</span>`;
   }
   if(o.dueDate)meta+=`<span>⏰ ${o.dueDate}</span>`;
   if(o.publishDue)meta+=`<span>📤 约定发布 ${o.publishDue}</span>`;
@@ -1084,7 +1180,8 @@ function openOrderModal(id){
     document.getElementById('edit-id').value=o.id;
     document.getElementById('in-store').value=o.store||'';
     document.getElementById('in-date').value=o.orderDate||'';
-    document.getElementById('in-shoot-time').value=o.shootTime||'';
+    // 编辑时去掉时区后缀，datetime-local 需要 "YYYY-MM-DDTHH:MM" 格式
+    document.getElementById('in-shoot-time').value=o.shootTime?o.shootTime.substring(0,16):'';
     document.getElementById('in-publish-due').value=o.publishDue||'';
     document.getElementById('in-publish-date').value=o.publishDate||'';
     document.getElementById('in-amount').value=o.amount||'';
@@ -1146,7 +1243,9 @@ function saveOrder(){
     hasTouliu:editPicks.touliu==='tl_yes'?'yes':'no',touliuFee:editPicks.touliu==='tl_yes'?(parseFloat(document.getElementById('in-touliu').value)||0):0,
     hasDeposit:editPicks.deposit==='dp_yes'?'yes':'no',depositFee:editPicks.deposit==='dp_yes'?(parseFloat(document.getElementById('in-deposit').value)||0):0,
     videoDuration:editPicks.duration||'',
-    orderDate:document.getElementById('in-date').value,shootTime:document.getElementById('in-shoot-time').value,publishDue:document.getElementById('in-publish-due').value,publishDate:document.getElementById('in-publish-date').value,dueDate:document.getElementById('in-due-date').value,
+    orderDate:document.getElementById('in-date').value,
+    shootTime:(function(){const v=document.getElementById('in-shoot-time').value;return v?(v+'+08:00'):'';})(),
+    publishDue:document.getElementById('in-publish-due').value,publishDate:document.getElementById('in-publish-date').value,dueDate:document.getElementById('in-due-date').value,
     payDate:editPicks.status==='paid'?document.getElementById('in-pay-date').value:'',
     note:document.getElementById('in-note').value.trim()
   };
