@@ -849,11 +849,12 @@ function switchPage(p){
 function renderHome(){
   const pending=cache.todos.filter(t=>!t.done).length;
   document.getElementById('home-todo-count').textContent=pending;
-  // 进行中项目 = 未拍摄完成的订单（字符串比较避免时区偏移）
-  const nowIso=new Date().toISOString();
+  // 进行中项目 = 未拍摄完成的订单（用 parseShootTime 统一时区）
+  const nowIso=new Date().toISOString().substring(0,16);
   const projects=cache.orders.filter(o=>{
     if(!o.shootTime)return false;
-    return o.shootTime.substring(0,16) > nowIso.substring(0,16);
+    const parsed=parseShootTime(o.shootTime);
+    return parsed && parsed > nowIso;
   });
   document.getElementById('home-project-count').textContent=projects.length;
   // 本月收入
@@ -882,7 +883,9 @@ function renderHomeCalendar(){
   const shootDays={};
   cache.orders.forEach(o=>{
     if(!o.shootTime)return;
-    const dt=o.shootTime.substring(0,10); // "2026-07-30"
+    const parsed=parseShootTime(o.shootTime);
+    if(!parsed)return;
+    const dt=parsed.substring(0,10); // "2026-07-30"
     if(dt.startsWith(calMonth)){
       if(!shootDays[dt])shootDays[dt]=[];
       shootDays[dt].push(o);
@@ -940,13 +943,20 @@ function shiftCalMonth(d){
 }
 function showDayShoot(dateStr){
   // 切到订单页并弹出当天拍摄订单
-  const dayOrders=cache.orders.filter(o=>o.shootTime&&o.shootTime.substring(0,10)===dateStr);
+  const dayOrders=cache.orders.filter(o=>{
+    if(!o.shootTime)return false;
+    const parsed=parseShootTime(o.shootTime);
+    return parsed && parsed.substring(0,10)===dateStr;
+  });
   if(dayOrders.length===0){toast('该天无拍摄行程');return;}
   // 切到该订单所在月份
   currentMonth=dateStr.substring(0,7);
   switchPage('orders');
   setTimeout(()=>{
-    const names=dayOrders.map(o=>`${o.store} ${o.shootTime.substring(11,16)}`).join('\n');
+    const names=dayOrders.map(o=>{
+      const parsed=parseShootTime(o.shootTime);
+      return `${o.store} ${parsed?parsed.substring(11,16):''}`;
+    }).join('\n');
     toast('📸 '+dateStr+' 拍摄：\n'+names,3000);
   },300);
 }
@@ -986,15 +996,42 @@ function addTodoFromPage(){
   input.value='';renderTodoPage();renderTodos();
 }
 
+// 统一解析 shootTime 为北京时间字符串 "YYYY-MM-DDTHH:MM"
+// 处理三种格式: "2026-07-30T17:00" / "2026-07-30T17:00+08:00" / "2026-07-30T09:00:00+00:00"
+function parseShootTime(s){
+  if(!s)return null;
+  // 如果带时区后缀（+00:00 / +08:00 / Z），用 new Date 解析后转回北京时间
+  if(s.includes('+')||s.includes('Z')){
+    const d=new Date(s);
+    if(isNaN(d))return null;
+    // 转成北京时间 (UTC+8)
+    const utcMs=d.getTime();
+    const bjMs=utcMs+8*3600*1000;
+    const bj=new Date(bjMs);
+    const y=bj.getUTCFullYear();
+    const mo=String(bj.getUTCMonth()+1).padStart(2,'0');
+    const da=String(bj.getUTCDate()).padStart(2,'0');
+    const h=String(bj.getUTCHours()).padStart(2,'0');
+    const mi=String(bj.getUTCMinutes()).padStart(2,'0');
+    return `${y}-${mo}-${da}T${h}:${mi}`;
+  }
+  // 无时区后缀，当作北京时间原样截取
+  return s.substring(0,16);
+}
+
 // 项目页面渲染
 function renderProjects(){
   const list=document.getElementById('project-list');
-  const nowIso=new Date().toISOString();
+  const nowIso=new Date().toISOString().substring(0,16);
   const projects=cache.orders.filter(o=>{
     if(!o.shootTime)return false;
-    // 字符串比较，避免时区偏移
-    return o.shootTime.substring(0,16) > nowIso.substring(0,16);
-  }).sort((a,b)=>(a.shootTime||'').localeCompare(b.shootTime||''));
+    const parsed=parseShootTime(o.shootTime);
+    return parsed && parsed > nowIso;
+  }).sort((a,b)=>{
+    const pa=parseShootTime(a.shootTime)||'';
+    const pb=parseShootTime(b.shootTime)||'';
+    return pa.localeCompare(pb);
+  });
   if(projects.length===0){
     list.innerHTML='<div class="empty-state"><div class="icon">📁</div><div>暂无进行中项目<br>所有拍摄都完成啦！🎉</div></div>';return;
   }
@@ -1046,8 +1083,8 @@ function render(){
 
   let filtered=getFiltered(mo).sort((a,b)=>{
     const nowIso=new Date().toISOString().substring(0,16);
-    const ad=a.shootTime?a.shootTime.substring(0,16):null;
-    const bd=b.shootTime?b.shootTime.substring(0,16):null;
+    const ad=a.shootTime?parseShootTime(a.shootTime):null;
+    const bd=b.shootTime?parseShootTime(b.shootTime):null;
     const aDone=ad&&ad<nowIso;
     const bDone=bd&&bd<nowIso;
     // 已拍摄的排最后
@@ -1078,21 +1115,23 @@ function orderCardHtml(o,today){
   let isShotDone=false;
   let meta=`<div class="order-meta"><span>📅 ${o.orderDate||'-'}</span>`;
   if(o.shootTime){
-    // 字符串解析，避免 new Date() 时区偏移（如 17:00 变凌晨 1:00）
-    const dt=o.shootTime; // "2026-07-30T17:00" 或 "2026-07-30T17:00+08:00"
-    const datePart=dt.substring(0,10); // "2026-07-30"
-    const timePart=dt.substring(11,16); // "17:00"
-    const[yd,md,dd]=datePart.split('-').map(Number);
-    const monthDay=`${md}月${dd}日`;
-    const todayDate=today; // "2026-07-29" 格式
-    const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
-    const tomorrowDate=tomorrow.toISOString().split('T')[0];
-    let label,cls;
-    if(datePart<todayDate){isShotDone=true;label=`✅ 已拍 ${md}/${dd}`;cls='shoot-done';}
-    else if(datePart===todayDate){label=`📸 今天 ${timePart}`;cls='shoot-tag';}
-    else if(datePart===tomorrowDate){label=`📸 明天 ${timePart}`;cls='shoot-tag';}
-    else{label=`📸 ${md}/${dd} ${timePart}`;cls='shoot-tag';}
-    meta+=`<span class="${cls}">${label}</span>`;
+    // 统一解析为北京时间，避免时区偏移
+    const parsed=parseShootTime(o.shootTime);
+    if(parsed){
+      const datePart=parsed.substring(0,10);
+      const timePart=parsed.substring(11,16);
+      const md=parseInt(datePart.substring(5,7));
+      const dd=parseInt(datePart.substring(8,10));
+      const todayDate=today;
+      const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
+      const tomorrowDate=tomorrow.toISOString().split('T')[0];
+      let label,cls;
+      if(datePart<todayDate){isShotDone=true;label=`✅ 已拍 ${md}/${dd}`;cls='shoot-done';}
+      else if(datePart===todayDate){label=`📸 今天 ${timePart}`;cls='shoot-tag';}
+      else if(datePart===tomorrowDate){label=`📸 明天 ${timePart}`;cls='shoot-tag';}
+      else{label=`📸 ${md}/${dd} ${timePart}`;cls='shoot-tag';}
+      meta+=`<span class="${cls}">${label}</span>`;
+    }
   }
   if(o.dueDate)meta+=`<span>⏰ ${o.dueDate}</span>`;
   if(o.publishDue)meta+=`<span>📤 约定发布 ${o.publishDue}</span>`;
@@ -1181,7 +1220,7 @@ function openOrderModal(id){
     document.getElementById('in-store').value=o.store||'';
     document.getElementById('in-date').value=o.orderDate||'';
     // 编辑时去掉时区后缀，datetime-local 需要 "YYYY-MM-DDTHH:MM" 格式
-    document.getElementById('in-shoot-time').value=o.shootTime?o.shootTime.substring(0,16):'';
+    document.getElementById('in-shoot-time').value=o.shootTime?(parseShootTime(o.shootTime)||'').substring(0,16):'';
     document.getElementById('in-publish-due').value=o.publishDue||'';
     document.getElementById('in-publish-date').value=o.publishDate||'';
     document.getElementById('in-amount').value=o.amount||'';
