@@ -377,6 +377,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     <div class="stat-card wide"><div class="label">当月总收入</div><div class="value" id="stat-total">¥0</div></div>
     <div class="stat-card green"><div class="label">已到账</div><div class="value" id="stat-paid">¥0</div></div>
     <div class="stat-card red"><div class="label">待收款项</div><div class="value" id="stat-unpaid">¥0</div></div>
+    <div class="stat-card" style="background:linear-gradient(135deg,var(--purple-dim),#F5F3FF);border-color:transparent"><div class="label">投流总金额</div><div class="value" id="stat-touliu" style="color:var(--purple)">¥0</div></div>
   </div>
   <div class="filter-bar" id="filter-bar">
     <div class="chip active" data-filter="all">全部</div>
@@ -859,7 +860,7 @@ function renderHome(){
   document.getElementById('home-project-count').textContent=projects.length;
   // 本月收入
   const mo=cache.orders.filter(o=>o.orderDate&&o.orderDate.startsWith(currentMonth));
-  const income=mo.reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  const income=mo.reduce((s,o)=>s+o.amount+o.transportFee,0);
   document.getElementById('home-income').textContent='¥'+income.toLocaleString();
   // 渲染月历
   renderHomeCalendar();
@@ -1073,13 +1074,15 @@ function render(){
   const[y,m]=currentMonth.split('-').map(Number);
   document.getElementById('month-label').textContent=`${y}年${m}月`;
   const mo=cache.orders.filter(o=>o.orderDate&&o.orderDate.startsWith(currentMonth));
-  const allTotal=mo.reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
-  const paidFull=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
-  const unpaidFull=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  const allTotal=mo.reduce((s,o)=>s+o.amount+o.transportFee,0);
+  const paidFull=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee,0);
+  const unpaidFull=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee,0);
   const depositTotal=mo.filter(o=>o.status==='unpaid'&&o.hasDeposit==='yes').reduce((s,o)=>s+(o.depositFee||0),0);
+  const touliuTotal=mo.reduce((s,o)=>s+(o.touliuFee||0),0);
   document.getElementById('stat-total').textContent='¥'+allTotal.toLocaleString();
   document.getElementById('stat-paid').textContent='¥'+(paidFull+depositTotal).toLocaleString();
   document.getElementById('stat-unpaid').textContent='¥'+(unpaidFull-depositTotal).toLocaleString();
+  document.getElementById('stat-touliu').textContent='¥'+touliuTotal.toLocaleString();
 
   let filtered=getFiltered(mo).sort((a,b)=>{
     const nowIso=new Date().toISOString().substring(0,16);
@@ -1142,7 +1145,7 @@ function orderCardHtml(o,today){
   const fmt=o.format?fmtMap[o.format]||['视频','video']:null;
   const tags=`<span class="tag ${pm[1]}">${pm[0]}</span>${fmt?`<span class="tag ${fmt[1]}">${fmt[0]}</span>`:''}${o.videoDuration?`<span class="tag" style="background:var(--blue-dim);color:var(--blue-dark)">⏱️${{dur_1min:'1min',dur_1_5min:'1.5min',dur_2min:'2min',dur_2_5min:'2.5min',dur_3min:'3min',dur_3_5min:'3.5min',dur_4min:'4min'}[o.videoDuration]||o.videoDuration}</span>`:''}${o.priceType?`<span class="tag ${o.priceType}">${o.priceType==='surface'?'水上':'水下'}</span>`:''}${o.hasTransport==='yes'?`<span class="tag transport">🚗+${o.transportFee}</span>`:''}${o.hasTouliu==='yes'?`<span class="tag touliu">🚀+${o.touliuFee||0}</span>`:''}${o.hasDeposit==='yes'?`<span class="tag" style="background:var(--green-dim);color:var(--green-dark)">💰定金${o.depositFee||0}</span>`:''}`;
   const note=o.note?`<div class="order-note">📝 ${o.note}</div>`:'';
-  const orderTotal=(o.amount||0)+(o.transportFee||0)+(o.touliuFee||0);
+  const orderTotal=(o.amount||0)+(o.transportFee||0);
   const orderDeposit=(o.hasDeposit==='yes'&&o.status==='unpaid')?(o.depositFee||0):0;
   const orderRemain=orderTotal-orderDeposit;
   const cardInner=`<div class="order-header"><div><div class="order-store">${o.store}</div>${tags}</div>
@@ -1188,7 +1191,7 @@ function renderArchive(){
     const m=o.orderDate.substring(0,7);
     if(!byMonth[m])byMonth[m]={orders:[],total:0};
     byMonth[m].orders.push(o);
-    byMonth[m].total+=o.amount+o.transportFee+(o.touliuFee||0);
+    byMonth[m].total+=o.amount+o.transportFee;
   });
   const keys=Object.keys(byMonth).sort().reverse();
   sec.innerHTML='<div class="archive-title">📚 历史已结款订单</div>'+keys.map(k=>{
@@ -1417,9 +1420,9 @@ function renderPricing(){
   const[y,m]=currentMonth.split('-').map(Number);
   document.getElementById('pricing-month-label').textContent=`${y}年${m}月报价`;
   const mo=cache.orders.filter(o=>o.orderDate&&o.orderDate.startsWith(currentMonth));
-  const allTotal=mo.reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
-  const paidFull=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
-  const unpaidFull=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  const allTotal=mo.reduce((s,o)=>s+o.amount+o.transportFee,0);
+  const paidFull=mo.filter(o=>o.status==='paid').reduce((s,o)=>s+o.amount+o.transportFee,0);
+  const unpaidFull=mo.filter(o=>o.status==='unpaid').reduce((s,o)=>s+o.amount+o.transportFee,0);
   const depositTotal=mo.filter(o=>o.status==='unpaid'&&o.hasDeposit==='yes').reduce((s,o)=>s+(o.depositFee||0),0);
   document.getElementById('pstat-total').textContent='¥'+allTotal.toLocaleString();
   document.getElementById('pstat-paid').textContent='¥'+(paidFull+depositTotal).toLocaleString();
@@ -1507,7 +1510,7 @@ function toggleCheck(id){
 function renderUnpaid(){
   const list=document.getElementById('unpaid-list');
   const unpaid=cache.orders.filter(o=>o.status==='unpaid').sort((a,b)=>(b.dueDate||'').localeCompare(a.dueDate||''));
-  const total=unpaid.reduce((s,o)=>s+o.amount+o.transportFee+(o.touliuFee||0),0);
+  const total=unpaid.reduce((s,o)=>s+o.amount+o.transportFee,0);
   const depositTotal=unpaid.filter(o=>o.hasDeposit==='yes').reduce((s,o)=>s+(o.depositFee||0),0);
   const remainTotal=total-depositTotal;
   if(unpaid.length===0){
@@ -1521,7 +1524,7 @@ function renderUnpaid(){
     const od=o.dueDate&&o.dueDate<today;
     return `<div style="background:var(--bg);border-radius:10px;padding:10px;margin-bottom:5px;border-left:3px solid ${od?'var(--red)':'var(--yellow)'}" onclick="selectMonth('${m}');togglePanel('unpaid-panel');">
       <div style="display:flex;justify-content:space-between"><div><div style="font-size:14px;font-weight:600">${o.store}</div><div style="font-size:11px;color:var(--text-dim)">${y}年${mm}月 · ${pm[o.platform]} · ${o.format==='image'?'图文':'视频'}</div></div>
-      <div style="font-size:15px;font-weight:700;color:var(--red-dark)">¥${(o.amount+o.transportFee+(o.touliuFee||0)-(o.hasDeposit==='yes'?(o.depositFee||0):0)).toLocaleString()}</div></div>
+      <div style="font-size:15px;font-weight:700;color:var(--red-dark)">¥${(o.amount+o.transportFee-(o.hasDeposit==='yes'?(o.depositFee||0):0)).toLocaleString()}</div></div>
       ${od?'<div style="font-size:11px;color:var(--red-dark);margin-top:3px">⚠ 已逾期 '+o.dueDate+'</div>':o.dueDate?'<div style="font-size:11px;color:var(--text-dim);margin-top:3px">⏰ 约定 '+o.dueDate+'</div>':''}
     </div>`;
   }).join('');
@@ -1535,8 +1538,8 @@ function renderStoreStats(){
   const map={};
   cache.orders.forEach(o=>{
     const n=o.store||'未命名';if(!map[n])map[n]={count:0,total:0,paid:0,unpaid:0,platforms:{},last:''};
-    map[n].count++;map[n].total+=o.amount+o.transportFee+(o.touliuFee||0);
-    if(o.status==='paid')map[n].paid+=o.amount+o.transportFee+(o.touliuFee||0);else map[n].unpaid+=o.amount+o.transportFee+(o.touliuFee||0);
+    map[n].count++;map[n].total+=o.amount+o.transportFee;
+    if(o.status==='paid')map[n].paid+=o.amount+o.transportFee;else map[n].unpaid+=o.amount+o.transportFee;
     const pm=o.platform||'xhs';map[n].platforms[pm]=(map[n].platforms[pm]||0)+1;
     if(o.orderDate&&o.orderDate>map[n].last)map[n].last=o.orderDate;
   });
