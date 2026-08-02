@@ -979,6 +979,7 @@ function renderTodoPage(){
   if(cache.todos.length===0){
     list.innerHTML='<div class="empty-state"><div class="icon">👽</div><div>暂无待办事项</div></div>';return;
   }
+  // 未完成在前面，已完成在下面
   const pending=cache.todos.filter(t=>!t.done);
   const done=cache.todos.filter(t=>t.done);
   let html='';
@@ -993,10 +994,10 @@ function renderTodoPage(){
   list.innerHTML=html;
 }
 function todoPageItemHtml(t){
-  return `<div style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow)">
-    <div onclick="toggleTodo('${t.id}')" style="width:24px;height:24px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;${t.done?'background:var(--buzz-green);border-color:var(--buzz-green)':''}">${t.done?'<span style="color:#fff;font-size:14px;font-weight:700">✓</span>':''}</div>
-    <span style="flex:1;font-size:15px;${t.done?'text-decoration:line-through;color:var(--text-dim)':''}">${t.text}</span>
-    <span onclick="removeTodo('${t.id}')" style="color:var(--text-dim);cursor:pointer;font-size:18px;padding:4px">✕</span>
+  return `<div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:8px;box-shadow:var(--shadow)">
+    <div onclick="toggleTodo('${t.id}')" ontouchstart="event.preventDefault();toggleTodo('${t.id}')" style="width:32px;height:32px;border-radius:50%;border:2px solid ${t.done?'var(--buzz-green)':'var(--border)'};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;background:${t.done?'var(--buzz-green)':'transparent)'};-webkit-tap-highlight-color:transparent">${t.done?'<span style="color:#fff;font-size:18px;font-weight:700">✓</span>':''}</div>
+    <span style="flex:1;font-size:16px;${t.done?'text-decoration:line-through;color:var(--text-dim)':''}">${t.text}</span>
+    <span onclick="removeTodo('${t.id}')" ontouchstart="event.preventDefault();removeTodo('${t.id}')" style="color:var(--text-dim);cursor:pointer;font-size:22px;padding:8px 4px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">✕</span>
   </div>`;
 }
 function addTodoFromPage(){
@@ -1004,7 +1005,7 @@ function addTodoFromPage(){
   const text=input.value.trim();
   if(!text)return;
   const t={id:'t'+Date.now(),text,done:false,created:new Date().toISOString().split('T')[0]};
-  cache.todos.push(t);saveCache();pushTodo(t);
+  cache.todos.unshift(t);saveCache();pushTodo(t);
   input.value='';renderTodoPage();renderTodos();
 }
 
