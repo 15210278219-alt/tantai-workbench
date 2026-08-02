@@ -432,13 +432,13 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   <div style="padding:20px 16px 8px">
     <div style="font-size:22px;font-weight:800;color:var(--text)">👽 今日待办</div>
   </div>
-  <div style="padding:0 16px" id="todo-page-list"></div>
-  <div style="padding:12px 16px">
+  <div style="padding:0 16px 12px">
     <div style="display:flex;gap:8px">
       <input type="text" id="todo-page-input" placeholder="添加新待办..." style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text);font-size:16px" onkeypress="if(event.key==='Enter')addTodoFromPage()">
       <button onclick="addTodoFromPage()" style="padding:0 18px;border:none;border-radius:12px;background:var(--buzz-green);color:#fff;font-size:16px;font-weight:600;cursor:pointer">添加</button>
     </div>
   </div>
+  <div style="padding:0 16px" id="todo-page-list"></div>
 </div>
 
 <!-- 项目页 -->
