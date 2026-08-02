@@ -678,8 +678,13 @@ async function syncAll(){
       pricing.forEach(p=>{newPricing[p.month]=mapPricingFromDB(p);});
       cache.pricing=newPricing;
     }
-    if(todos){
-      cache.todos=todos.map(t=>({id:t.id,text:t.text,done:t.done,created:t.created}));
+    if(todos && Array.isArray(todos)){
+      // 合并模式：云端数据为准，但本地新增的（云端还没有的）保留下来
+      const cloudIds=new Set(todos.map(t=>t.id));
+      const localOnly=cache.todos.filter(t=>!cloudIds.has(t.id));
+      const cloudTodos=todos.map(t=>({id:t.id,text:t.text,done:t.done,created:t.created}));
+      // 如果云端有数据，以云端为准 + 本地独有；如果云端为空，保留本地
+      cache.todos=cloudTodos.length>0?[...cloudTodos,...localOnly.filter(t=>!cloudIds.has(t.id))]:cache.todos;
     }
     saveCache();
     setSyncStatus('','☁️ 云端已连接');
@@ -767,8 +772,11 @@ async function pushPricing(month,data){
 // CRUD - Todos
 // ========================
 async function pushTodo(t){
-  if(!sb)return;
-  await sb.from('todos').upsert({id:t.id,room_id:ROOM,text:t.text,done:t.done,created:t.created});
+  if(!sb){console.warn('pushTodo: sb未初始化');return;}
+  try{
+    const{error}=await sb.from('todos').upsert({id:t.id,room_id:ROOM,text:t.text,done:t.done,created:t.created});
+    if(error){console.error('pushTodo错误:',JSON.stringify(error));toast('⚠ 待办同步失败');}
+  }catch(e){console.error('pushTodo异常:',e);toast('⚠ 待办同步异常');}
 }
 async function deleteTodoDB(id){
   if(!sb)return;
@@ -1580,10 +1588,10 @@ function addTodo(){
 }
 function toggleTodo(id){
   const t=cache.todos.find(x=>x.id==id);if(!t)return;
-  t.done=!t.done;saveCache();pushTodo(t);renderTodos();
+  t.done=!t.done;saveCache();pushTodo(t);renderTodos();renderTodoPage();
 }
 function removeTodo(id){
-  cache.todos=cache.todos.filter(x=>x.id!=id);saveCache();deleteTodoDB(id);renderTodos();
+  cache.todos=cache.todos.filter(x=>x.id!=id);saveCache();deleteTodoDB(id);renderTodos();renderTodoPage();
 }
 function renderTodos(){
   const list=document.getElementById('todo-list');
